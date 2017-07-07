@@ -13,39 +13,47 @@ import javafx.stage.Stage;
  */
 public class Main extends Application {
 
-    private static String[] args;
+	private static String[] args;
 
-    public static void main(final String[] args) {
-        Main.args = args;
-        launch(args);
-    }
+	public static void main(final String[] args) {
+		Main.args = args;
+		launch(args);
+	}
 
-    /**
-     * <p>Called automatically by JavaFX (via the {@link Main#launch(String...)} invocation in
-     * {@link Main#main(String[])}, to create the UI.</p>
-     *
-     * <p>Loads the main FXML file and controller class, and registers a handler so that arrow key events
-     * can be passed to {@link Controller#keyPressedEvent(KeyEvent)} for scrolling through the gallery.</p>
-     *
-     * @param primaryStage
-     * @throws Exception
-     */
-    @Override
-    public void start(Stage primaryStage) throws Exception {
-        final FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("main.fxml"));
-        Controller controller = new Controller();
-        controller.setArgs(args);
-        controller.setStage(primaryStage);
-        loader.setController(controller);
-
-        final Parent root = loader.load();
-        final Scene scene = new Scene(root);
-        scene.addEventHandler(KeyEvent.KEY_PRESSED, controller::keyPressedEvent);
-        scene.addEventHandler(KeyEvent.KEY_PRESSED, controller::markEvent);
-        primaryStage.setScene(scene);
-        primaryStage.getIcons().add(new Image(getClass().getResource("/icon.png").toString()));
-        primaryStage.setTitle("Image Mark - Unifacisa");
-        primaryStage.show();
-    }
+	/**
+	 * <p>
+	 * Called automatically by JavaFX (via the {@link Main#launch(String...)}
+	 * invocation in {@link Main#main(String[])}, to create the UI.
+	 * </p>
+	 *
+	 * <p>
+	 * Loads the main FXML file and controller class, and registers a handler so
+	 * that arrow key events can be passed to
+	 * {@link Controller#keyPressedEvent(KeyEvent)} for scrolling through the
+	 * gallery.
+	 * </p>
+	 *
+	 * @param primaryStage
+	 * @throws Exception
+	 */
+	@Override
+	public void start(Stage primaryStage) throws Exception {
+		final FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("main.fxml"));
+		Controller controller = new Controller();
+		controller.setArgs(args);
+		controller.setStage(primaryStage);
+		loader.setController(controller);
+		final Parent root = loader.load();
+		final Scene scene = new Scene(root);
+		scene.addEventHandler(KeyEvent.KEY_PRESSED, controller::keyPressedEvent);
+		primaryStage.setScene(scene);
+		primaryStage.setScene(scene);
+		primaryStage.getIcons().add(new Image(getClass().getResource("/icon.png").toString()));
+		primaryStage.setTitle("Image Mark - Unifacisa");
+		primaryStage.setMinWidth(816);
+		primaryStage.setMinHeight(600);
+//		primaryStage.setFullScreen(true);
+		primaryStage.show();
+	}
 
 }

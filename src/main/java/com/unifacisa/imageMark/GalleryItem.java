@@ -4,22 +4,16 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * A wrapper for a supported media file.  Includes a file reference and type identifier (i.e. image or video).
  */
 public class GalleryItem {
 
-    public static final List<String> imageExtensions = Collections.unmodifiableList(Arrays.asList(".bmp", ".gif", ".jpg", ".png"));
-    public static final List<String> videoExtensions = Collections.unmodifiableList(Arrays.asList(".aif", ".aiff", ".fxm", ".flv", ".mp3", ".mp4", ".m4a", ".m4v", ".wav"));
-    public static final List<String> allExtensions = Collections.unmodifiableList(
-            Stream.concat(imageExtensions.stream(), videoExtensions.stream()).collect(Collectors.toList())
-    );
+    public static final List<String> imageExtensions = Collections.unmodifiableList(Arrays.asList(".jpg"));
 
     private enum Type {
-        IMAGE, VIDEO
+        IMAGE
     }
 
     private final File item;
@@ -52,8 +46,6 @@ public class GalleryItem {
         final String ext = file.getName().substring(file.getName().lastIndexOf('.')).toLowerCase();
         if (file.isFile() && imageExtensions.contains(ext)) {
             return new GalleryItem(file, Type.IMAGE);
-        } else if (file.isFile() && videoExtensions.contains(ext)) {
-            return new GalleryItem(file, Type.VIDEO);
         } else {
             return null;
         }
@@ -65,9 +57,5 @@ public class GalleryItem {
 
     public boolean isImage() {
         return Type.IMAGE.equals(type);
-    }
-
-    public boolean isVideo() {
-        return Type.VIDEO.equals(type);
     }
 }
