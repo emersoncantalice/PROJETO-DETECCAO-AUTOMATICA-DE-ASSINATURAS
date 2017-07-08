@@ -1,7 +1,9 @@
 package com.unifacisa.imageMark;
 
-import java.awt.event.ActionEvent;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -47,6 +49,16 @@ import javafx.stage.Stage;
  * The JavaFX controller bound to "main.fxml", the main UI window.
  */
 public class Controller implements Initializable {
+
+	private static final String MARCACAO_PARA_ESSA_IMAGEM_FINALIZADA = "Marcação para essa imagem finalizada";
+	private static final String PX = "px";
+	private static final String VIRGULA = ",";
+	private static final String ZERO_STRING = "0,0";
+	private static final String AGUARDANDO_MARCACAO_INICIAL = "Aguardando marcação inicial";
+	private static final String AGUARDANDO_MARCACAO_DE_ALTURA_DE_LINHA = "Aguardando marcação de altura de linha";
+	private static final String AGUARDANDO_MARCACAO_FINAL = "Aguardando marcação final";
+	private static final String MARCACAO_FINALIZADA = "Marcação finalizada!";
+	private static final String SEPARADOR = System.getProperty("file.separator");
 
 	@FXML
 	private MenuItem fileOpen;
@@ -98,8 +110,9 @@ public class Controller implements Initializable {
 	private ChangeListener<? super Number> sizeSliderListener;
 	private ImageView imageView;
 	private ScrollPane scrollPane;
-	private ArrayList<String> coordenadas;
+	private ArrayList<String> coordinates;
 	private List<Node> listNodesRectangles;
+	private GalleryItem itemCurrent;
 
 	/**
 	 * Called automatically by JavaFX when creating the UI.
@@ -141,10 +154,30 @@ public class Controller implements Initializable {
 	void keyPressedEvent(KeyEvent event) {
 		if (!gallery.isEmpty()) {
 			if (event.getCode().equals(KeyCode.RIGHT)) {
+				if (statusMarcacao.getText().equals(MARCACAO_FINALIZADA)) {
+					salvarLog(coordinates, listNodesRectangles, imageView.getImage());
+				}
 				renderNext();
 			} else if (event.getCode().equals(KeyCode.LEFT)) {
 				renderPrevious();
 			}
+		}
+	}
+
+	private void salvarLog(ArrayList<String> coordenadas2, List<Node> listNodesRectangles2, Image image) {
+		// String path = image.impl_getUrl().substring(6);
+		String fileNameFull = itemCurrent.getItem().getName();
+		String fileNameOutExtension = fileNameFull.substring(0, fileNameFull.lastIndexOf("."));
+		File arquivo = new File(itemCurrent.getItem().getParentFile() + SEPARADOR + fileNameOutExtension + ".txt");
+		try (FileOutputStream fo = new FileOutputStream(arquivo)) {
+			BufferedOutputStream bos = new BufferedOutputStream(fo);
+			bos.write("teste".getBytes());
+			bos.write("\n".getBytes());// inserindo um caractere de nova linha
+			bos.write("teste2".getBytes());
+			bos.flush();
+
+		} catch (IOException ex) {
+			ex.printStackTrace();
 		}
 	}
 
@@ -165,7 +198,7 @@ public class Controller implements Initializable {
 
 		helpAbout.setOnAction(actionEvent -> {
 			final Alert dialog = new Alert(Alert.AlertType.NONE,
-					"Unifacisa - Image Mark\n Projeto: detecção de assinaturas\n\n", ButtonType.CLOSE);
+					"Unifacisa - Image Mark\nProjeto: detecção de assinaturas\n\n", ButtonType.CLOSE);
 			dialog.setTitle("Sobre");
 
 			((Stage) dialog.getDialogPane().getScene().getWindow()).getIcons()
@@ -186,11 +219,11 @@ public class Controller implements Initializable {
 			StackPane st = (StackPane) sp.getContent();
 			AnchorPane ap = (AnchorPane) st.getChildren().get(0);
 			ap.getChildren().removeAll(listNodesRectangles);
-			coordenadas = new ArrayList<String>();
+			coordinates = new ArrayList<String>();
 			statusMarcacao.setText("Marcação reiniciada, aguardando marcação inicial");
-			coord1.setText("0,0");
-			coord2.setText("0,0");
-			coord3.setText("0,0");
+			coord1.setText(ZERO_STRING);
+			coord2.setText(ZERO_STRING);
+			coord3.setText(ZERO_STRING);
 		});
 
 		buttonFaltantes.setDisable(true);
@@ -434,6 +467,7 @@ public class Controller implements Initializable {
 		if (item == null)
 			return;
 		stage.setTitle("Image Mark - " + item.getItem().getName());
+		itemCurrent = item;
 
 		if (content.getChildren().size() > 0 && content.getChildren().get(0) instanceof ImageView) {
 			// Stop the status bar slider from resizing any previous image (this
@@ -467,12 +501,12 @@ public class Controller implements Initializable {
 			imageView = new ImageView(new Image(imageURL));
 			StackPane stackPane = new StackPane();
 			AnchorPane anchor = new AnchorPane();
-			statusMarcacao.setText("Aguardando marcação inicial");
-			coord1.setText("0,0");
-			coord2.setText("0,0");
-			coord3.setText("0,0");
+			statusMarcacao.setText(AGUARDANDO_MARCACAO_INICIAL);
+			coord1.setText(ZERO_STRING);
+			coord2.setText(ZERO_STRING);
+			coord3.setText(ZERO_STRING);
 			nameImage.setText(item.getName());
-			coordenadas = new ArrayList<String>();
+			coordinates = new ArrayList<String>();
 
 			imageView.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
 
@@ -483,35 +517,30 @@ public class Controller implements Initializable {
 				private double x3;
 				private double y3;
 				private List<RetanguloAssinatura> retangulos;
-				private RetanguloAssinatura rOut;
-				
 
 				@Override
 				public void handle(MouseEvent mouseEvent) {
 
-					if (coordenadas.size() == 0) {
-						coordenadas.add((int) mouseEvent.getX() + "," + (int) mouseEvent.getY() + "px");
-						coord1.setText((int) mouseEvent.getX() + "," + (int) mouseEvent.getY());
-						statusMarcacao.setText("Aguardando marcação de altura de linha");
+					if (coordinates.size() == 0) {
+						coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+						coord1.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY());
+						statusMarcacao.setText(AGUARDANDO_MARCACAO_DE_ALTURA_DE_LINHA);
 						resetMarcacao.setDisable(false);
 						x = mouseEvent.getX();
 						y = mouseEvent.getY();
-					} else if (coordenadas.size() == 1) {
-						coordenadas.add((int) mouseEvent.getX() + "," + (int) mouseEvent.getY() + "px");
-						coord2.setText((int) mouseEvent.getX() + "," + (int) mouseEvent.getY());
-						statusMarcacao.setText("Aguardando marcação final");
+					} else if (coordinates.size() == 1) {
+						coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+						coord2.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY());
+						statusMarcacao.setText(AGUARDANDO_MARCACAO_FINAL);
 						x2 = mouseEvent.getX();
 						y2 = mouseEvent.getY();
-					} else if (coordenadas.size() == 2) {
-						coordenadas.add((int) mouseEvent.getX() + "," + (int) mouseEvent.getY() + "px");
-						coord3.setText((int) mouseEvent.getX() + "," + (int) mouseEvent.getY());
-						statusMarcacao.setText("Marcação finalizada!");
+					} else if (coordinates.size() == 2) {
+						coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+						coord3.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY());
+						statusMarcacao.setText(MARCACAO_FINALIZADA);
 						x3 = mouseEvent.getX();
 						y3 = mouseEvent.getY();
 
-						// anchor.minWidthProperty().bind(Bindings.createDoubleBinding(()
-						// -> scrollPane.getViewportBounds().getWidth(),
-						// scrollPane.viewportBoundsProperty()));
 						anchor.getChildren().clear();
 						anchor.setLayoutX(imageView.getFitHeight());
 						anchor.setLayoutY(imageView.getFitWidth());
@@ -521,6 +550,7 @@ public class Controller implements Initializable {
 						stackPane.setLayoutX(imageView.getFitHeight());
 						stackPane.setLayoutY(imageView.getFitWidth());
 						stackPane.opacityProperty().set(1);
+						content.setFocusTraversable(true);
 
 						int quantidadeRetangulos = (int) Math.round((((y3 - 2) - (y - 2)) / ((y2 - 2) - (y - 2))));
 						System.out.println("Quantidade de retangulos = " + quantidadeRetangulos + " - Real = "
@@ -546,7 +576,11 @@ public class Controller implements Initializable {
 								@Override
 								public void handle(MouseEvent mouseEvent) {
 									Rectangle rectangleSelect = (Rectangle) mouseEvent.getSource();
-									rectangleSelect.setStroke(Color.GREEN);
+									if (rectangleSelect.getStroke().equals(Color.GREEN)) {
+										rectangleSelect.setStroke(Color.RED);
+									} else {
+										rectangleSelect.setStroke(Color.GREEN);
+									}
 									System.out.println("Clique no retangulo " + rectangleSelect);
 								}
 							});
@@ -561,7 +595,7 @@ public class Controller implements Initializable {
 						sp.setContent(stackPane);
 						content.getChildren().add(sp);
 					} else {
-						System.out.println("Marcação para essa imagem finalizada.");
+						System.out.println(MARCACAO_PARA_ESSA_IMAGEM_FINALIZADA);
 					}
 
 				}
@@ -590,7 +624,7 @@ public class Controller implements Initializable {
 			imageView.addEventFilter(MouseEvent.MOUSE_MOVED, new EventHandler<MouseEvent>() {
 				@Override
 				public void handle(MouseEvent mouseEvent) {
-					coords.setText((int) mouseEvent.getX() + "," + (int) mouseEvent.getY() + "px");
+					coords.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
 				}
 			});
 
