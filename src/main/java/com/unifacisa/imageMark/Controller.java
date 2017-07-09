@@ -50,6 +50,8 @@ import javafx.stage.Stage;
  */
 public class Controller implements Initializable {
 
+	private static final String MARCACAO_REINICIADA_AGUARDANDO_MARCACAO_INICIAL = "Marcação reiniciada, aguardando marcação inicial";
+	private static final byte[] SEPARADOR_FILE_LOG = "#@".getBytes();
 	private static final String MARCACAO_PARA_ESSA_IMAGEM_FINALIZADA = "Marcação para essa imagem finalizada";
 	private static final String PX = "px";
 	private static final String VIRGULA = ",";
@@ -113,6 +115,12 @@ public class Controller implements Initializable {
 	private ArrayList<String> coordinates;
 	private List<Node> listNodesRectangles;
 	private GalleryItem itemCurrent;
+	private double x0;
+	private double y0;
+	private double x1;
+	private double y1;
+	private double x2;
+	private double y2;
 
 	/**
 	 * Called automatically by JavaFX when creating the UI.
@@ -155,7 +163,7 @@ public class Controller implements Initializable {
 		if (!gallery.isEmpty()) {
 			if (event.getCode().equals(KeyCode.RIGHT)) {
 				if (statusMarcacao.getText().equals(MARCACAO_FINALIZADA)) {
-					salvarLog(coordinates, listNodesRectangles, imageView.getImage());
+					salvarLog(coordinates, listNodesRectangles);
 				}
 				renderNext();
 			} else if (event.getCode().equals(KeyCode.LEFT)) {
@@ -164,16 +172,43 @@ public class Controller implements Initializable {
 		}
 	}
 
-	private void salvarLog(ArrayList<String> coordenadas2, List<Node> listNodesRectangles2, Image image) {
-		// String path = image.impl_getUrl().substring(6);
+	private void salvarLog(ArrayList<String> coordenadas, List<Node> listNodesRectangles2) {
 		String fileNameFull = itemCurrent.getItem().getName();
 		String fileNameOutExtension = fileNameFull.substring(0, fileNameFull.lastIndexOf("."));
 		File arquivo = new File(itemCurrent.getItem().getParentFile() + SEPARADOR + fileNameOutExtension + ".txt");
 		try (FileOutputStream fo = new FileOutputStream(arquivo)) {
 			BufferedOutputStream bos = new BufferedOutputStream(fo);
-			bos.write("teste".getBytes());
-			bos.write("\n".getBytes());// inserindo um caractere de nova linha
-			bos.write("teste2".getBytes());
+
+			bos.write((coordenadas.get(0).toString().getBytes()));
+			bos.write(SEPARADOR_FILE_LOG);
+			bos.write((coordenadas.get(0).toString().getBytes()));
+			bos.write(SEPARADOR_FILE_LOG);
+			bos.write((coordenadas.get(2).toString().getBytes()));
+			bos.write(SEPARADOR_FILE_LOG);
+
+			if (buttonFaltantes.isSelected()) {
+				bos.write(("F".toString().getBytes()));
+				bos.write(SEPARADOR_FILE_LOG);
+				for (Node node : listNodesRectangles2) {
+					Rectangle r = (Rectangle) node;
+					if (r.getStroke().equals(Color.RED)) {
+						bos.write(r.getBoundsInLocal().toString().getBytes());
+						bos.write(SEPARADOR_FILE_LOG);
+					}
+				}
+			} else {
+				bos.write(("P".toString().getBytes()));
+				bos.write(SEPARADOR_FILE_LOG);
+				for (Node node : listNodesRectangles2) {
+					Rectangle r = (Rectangle) node;
+					if (r.getStroke().equals(Color.GREEN)) {
+						bos.write(r.getBoundsInLocal().toString().getBytes());
+						bos.write(SEPARADOR_FILE_LOG);
+					}
+
+				}
+			}
+
 			bos.flush();
 
 		} catch (IOException ex) {
@@ -207,11 +242,22 @@ public class Controller implements Initializable {
 		});
 
 		buttonPresentes.setOnAction(actionEvent -> {
+			buttonPresentes.setSelected(true);
+			buttonFaltantes.setSelected(false);
+			for (Node node : listNodesRectangles) {
+				Rectangle r = (Rectangle) node;
+				r.setStroke(Color.BLUE);
+			}
 
 		});
 
 		buttonFaltantes.setOnAction(actionEvent -> {
-
+			buttonPresentes.setSelected(false);
+			buttonFaltantes.setSelected(true);
+			for (Node node : listNodesRectangles) {
+				Rectangle r = (Rectangle) node;
+				r.setStroke(Color.BLUE);
+			}
 		});
 
 		resetMarcacao.setOnAction(ActionEvent -> {
@@ -220,7 +266,7 @@ public class Controller implements Initializable {
 			AnchorPane ap = (AnchorPane) st.getChildren().get(0);
 			ap.getChildren().removeAll(listNodesRectangles);
 			coordinates = new ArrayList<String>();
-			statusMarcacao.setText("Marcação reiniciada, aguardando marcação inicial");
+			statusMarcacao.setText(MARCACAO_REINICIADA_AGUARDANDO_MARCACAO_INICIAL);
 			coord1.setText(ZERO_STRING);
 			coord2.setText(ZERO_STRING);
 			coord3.setText(ZERO_STRING);
@@ -410,6 +456,8 @@ public class Controller implements Initializable {
 		// content.getChildren().add(imageView);
 		// }
 		fitsize = false;
+		renderNext();
+		
 	}
 
 	/**
@@ -506,16 +554,13 @@ public class Controller implements Initializable {
 			coord2.setText(ZERO_STRING);
 			coord3.setText(ZERO_STRING);
 			nameImage.setText(item.getName());
+			resetMarcacao.setDisable(true);
+			buttonPresentes.setDisable(true);
+			buttonFaltantes.setDisable(true);
 			coordinates = new ArrayList<String>();
 
 			imageView.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
 
-				private double x;
-				private double y;
-				private double x2;
-				private double y2;
-				private double x3;
-				private double y3;
 				private List<RetanguloAssinatura> retangulos;
 
 				@Override
@@ -526,20 +571,23 @@ public class Controller implements Initializable {
 						coord1.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY());
 						statusMarcacao.setText(AGUARDANDO_MARCACAO_DE_ALTURA_DE_LINHA);
 						resetMarcacao.setDisable(false);
-						x = mouseEvent.getX();
-						y = mouseEvent.getY();
+						buttonPresentes.setDisable(false);
+						buttonFaltantes.setDisable(false);
+						buttonFaltantes.setSelected(true);
+						x0 = mouseEvent.getX();
+						y0 = mouseEvent.getY();
 					} else if (coordinates.size() == 1) {
 						coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
 						coord2.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY());
 						statusMarcacao.setText(AGUARDANDO_MARCACAO_FINAL);
-						x2 = mouseEvent.getX();
-						y2 = mouseEvent.getY();
+						x1 = mouseEvent.getX();
+						y1 = mouseEvent.getY();
 					} else if (coordinates.size() == 2) {
 						coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
 						coord3.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY());
 						statusMarcacao.setText(MARCACAO_FINALIZADA);
-						x3 = mouseEvent.getX();
-						y3 = mouseEvent.getY();
+						x2 = mouseEvent.getX();
+						y2 = mouseEvent.getY();
 
 						anchor.getChildren().clear();
 						anchor.setLayoutX(imageView.getFitHeight());
@@ -552,14 +600,14 @@ public class Controller implements Initializable {
 						stackPane.opacityProperty().set(1);
 						content.setFocusTraversable(true);
 
-						int quantidadeRetangulos = (int) Math.round((((y3 - 2) - (y - 2)) / ((y2 - 2) - (y - 2))));
+						int quantidadeRetangulos = (int) Math.round((((y2 - 2) - (y0 - 2)) / ((y1 - 2) - (y0 - 2))));
 						System.out.println("Quantidade de retangulos = " + quantidadeRetangulos + " - Real = "
-								+ ((y3 - y) / (y2 - y)));
+								+ ((y2 - y0) / (y1 - y0)));
 
-						double pontoInicialX = x;
-						double pontoInicialY = y;
-						double largura = x3 - x2;
-						double altura = y2 - y;
+						double pontoInicialX = x0;
+						double pontoInicialY = y0;
+						double largura = x2 - x1;
+						double altura = y1 - y0;
 						retangulos = calculaRetangulos(quantidadeRetangulos, largura, altura, pontoInicialY,
 								pontoInicialX);
 
@@ -568,7 +616,7 @@ public class Controller implements Initializable {
 						for (RetanguloAssinatura retangulo : retangulos) {
 							rectangle = new Rectangle(retangulo.getPontoInicialX(), retangulo.getPontoInicialY(),
 									retangulo.getLargura(), retangulo.getAltura());
-							rectangle.setStroke(Color.RED);
+							rectangle.setStroke(Color.BLUE);
 							rectangle.setStrokeWidth(5);
 							rectangle.opacityProperty().set(0.5);
 							rectangle.setCursor(Cursor.HAND);
@@ -576,12 +624,22 @@ public class Controller implements Initializable {
 								@Override
 								public void handle(MouseEvent mouseEvent) {
 									Rectangle rectangleSelect = (Rectangle) mouseEvent.getSource();
-									if (rectangleSelect.getStroke().equals(Color.GREEN)) {
-										rectangleSelect.setStroke(Color.RED);
+									if (rectangleSelect.getStroke().equals(Color.BLUE)) {
+										if (buttonFaltantes.isSelected()) {
+											rectangleSelect.setStroke(Color.RED);
+										} else {
+											rectangleSelect.setStroke(Color.GREEN);
+										}
 									} else {
-										rectangleSelect.setStroke(Color.GREEN);
+										if (buttonFaltantes.isSelected()) {
+											rectangleSelect.setStroke(Color.RED);
+										} else {
+											rectangleSelect.setStroke(Color.GREEN);
+										}
 									}
 									System.out.println("Clique no retangulo " + rectangleSelect);
+									stage.setAlwaysOnTop(true);
+									stage.setFocused(true);
 								}
 							});
 							listNodesRectangles.add(rectangle);
