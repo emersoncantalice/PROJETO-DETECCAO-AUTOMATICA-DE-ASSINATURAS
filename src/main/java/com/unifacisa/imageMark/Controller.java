@@ -13,12 +13,9 @@ import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
 import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
-import javafx.beans.value.ChangeListener;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.geometry.Bounds;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
@@ -29,7 +26,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.DragEvent;
@@ -41,6 +37,7 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.StrokeType;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -50,6 +47,11 @@ import javafx.stage.Stage;
  */
 public class Controller implements Initializable {
 
+	private static final String VAZIO = "";
+	private static final String TXT_EXTENSION = ".txt";
+	private static final String PONTO = ".";
+	private static final String FALTANTES_SELECIONADO = "F";
+	private static final String PRESENTES_SELECIONADO = "P";
 	private static final String MARCACAO_REINICIADA_AGUARDANDO_MARCACAO_INICIAL = "Marcação reiniciada, aguardando marcação inicial";
 	private static final byte[] SEPARADOR_FILE_LOG = "#@".getBytes();
 	private static final String MARCACAO_PARA_ESSA_IMAGEM_FINALIZADA = "Marcação para essa imagem finalizada";
@@ -77,11 +79,7 @@ public class Controller implements Initializable {
 	@FXML
 	private StackPane content;
 	@FXML
-	private Button sizeButton;
-	@FXML
 	private Button resetMarcacao;
-	@FXML
-	private Slider sizeSlider;
 	@FXML
 	private Text coords;
 	@FXML
@@ -108,8 +106,6 @@ public class Controller implements Initializable {
 	private String[] args;
 	private Stage stage;
 	private Gallery gallery = new Gallery();
-	private boolean fitsize = true;
-	private ChangeListener<? super Number> sizeSliderListener;
 	private ImageView imageView;
 	private ScrollPane scrollPane;
 	private ArrayList<String> coordinates;
@@ -162,9 +158,9 @@ public class Controller implements Initializable {
 	void keyPressedEvent(KeyEvent event) {
 		if (!gallery.isEmpty()) {
 			if (event.getCode().equals(KeyCode.RIGHT)) {
-				if (statusMarcacao.getText().equals(MARCACAO_FINALIZADA)) {
-					salvarLog(coordinates, listNodesRectangles);
-				}
+				// if (statusMarcacao.getText().equals(MARCACAO_FINALIZADA)) {
+				// salvarLog(coordinates, listNodesRectangles);
+				// }
 				renderNext();
 			} else if (event.getCode().equals(KeyCode.LEFT)) {
 				renderPrevious();
@@ -172,37 +168,108 @@ public class Controller implements Initializable {
 		}
 	}
 
+	void save(KeyEvent event) {
+		if (!gallery.isEmpty()) {
+			if (event.getCode().equals(KeyCode.S)) {
+				if (statusMarcacao.getText().equals(MARCACAO_FINALIZADA)) {
+					salvarLog(coordinates, listNodesRectangles);
+					ScrollPane sp = (ScrollPane) content.getChildren().get(0);
+					StackPane st = (StackPane) sp.getContent();
+					AnchorPane ap = (AnchorPane) st.getChildren().get(0);
+					if (listNodesRectangles != null) {
+						ap.getChildren().removeAll(listNodesRectangles);
+					}
+					coordinates = new ArrayList<String>();
+					statusMarcacao.setText(MARCACAO_REINICIADA_AGUARDANDO_MARCACAO_INICIAL);
+					coord1.setText(ZERO_STRING);
+					coord2.setText(ZERO_STRING);
+					coord3.setText(ZERO_STRING);
+				} else {
+					System.out.println("Marcação não finalizada, são é possivel salvar");
+				}
+				renderNext();
+			}
+		}
+	}
+
 	private void salvarLog(ArrayList<String> coordenadas, List<Node> listNodesRectangles2) {
 		String fileNameFull = itemCurrent.getItem().getName();
-		String fileNameOutExtension = fileNameFull.substring(0, fileNameFull.lastIndexOf("."));
-		File arquivo = new File(itemCurrent.getItem().getParentFile() + SEPARADOR + fileNameOutExtension + ".txt");
+		String fileNameOutExtension = fileNameFull.substring(0, fileNameFull.lastIndexOf(PONTO));
+		if (new File(itemCurrent.getItem().getParentFile() + SEPARADOR + fileNameOutExtension + TXT_EXTENSION)
+				.exists()) {
+			final Alert dialog = new Alert(Alert.AlertType.WARNING, "Arquivo já existe! Deseja sobrecrever?\n\n",
+					ButtonType.NO, ButtonType.YES);
+			dialog.setTitle("Image View - Alerta!");
+
+			((Stage) dialog.getDialogPane().getScene().getWindow()).getIcons()
+					.add(new Image(getClass().getResource("/icon.png").toString()));
+			dialog.showAndWait();
+
+			if (dialog.getResult().equals(ButtonType.YES)) {
+				File arquivo = new File(
+						itemCurrent.getItem().getParentFile() + SEPARADOR + fileNameOutExtension + TXT_EXTENSION);
+				saveLog(arquivo);
+			} else {
+				renderNext();
+			}
+
+		} else {
+			File arquivo = new File(
+					itemCurrent.getItem().getParentFile() + SEPARADOR + fileNameOutExtension + TXT_EXTENSION);
+			saveLog(arquivo);
+
+		}
+	}
+
+	private void saveLog(File arquivo) {
 		try (FileOutputStream fo = new FileOutputStream(arquivo)) {
 			BufferedOutputStream bos = new BufferedOutputStream(fo);
 
-			bos.write((coordenadas.get(0).toString().getBytes()));
+			String[] coord0 = coord1.getText().split(VIRGULA);
+			String[] coord1 = coord2.getText().split(VIRGULA);
+			String[] coord2 = coord3.getText().split(VIRGULA);
+
 			bos.write(SEPARADOR_FILE_LOG);
-			bos.write((coordenadas.get(0).toString().getBytes()));
+			bos.write((coord0[0].getBytes()));
 			bos.write(SEPARADOR_FILE_LOG);
-			bos.write((coordenadas.get(2).toString().getBytes()));
+			bos.write((coord0[1].getBytes()));
+			bos.write(SEPARADOR_FILE_LOG);
+
+			bos.write((coord1[0].getBytes()));
+			bos.write(SEPARADOR_FILE_LOG);
+			bos.write((coord1[1].getBytes()));
+			bos.write(SEPARADOR_FILE_LOG);
+
+			bos.write((coord2[0].getBytes()));
+			bos.write(SEPARADOR_FILE_LOG);
+			bos.write((coord2[1].getBytes()));
 			bos.write(SEPARADOR_FILE_LOG);
 
 			if (buttonFaltantes.isSelected()) {
-				bos.write(("F".toString().getBytes()));
+				bos.write((FALTANTES_SELECIONADO.getBytes()));
 				bos.write(SEPARADOR_FILE_LOG);
-				for (Node node : listNodesRectangles2) {
+				for (Node node : listNodesRectangles) {
 					Rectangle r = (Rectangle) node;
-					if (r.getStroke().equals(Color.RED)) {
-						bos.write(r.getBoundsInLocal().toString().getBytes());
+					if (r.getStroke().equals(Color.DARKRED)) {
+						bos.write((r.getBoundsInLocal().getMinX() + VAZIO).getBytes());
+						bos.write(SEPARADOR_FILE_LOG);
+						bos.write((r.getBoundsInLocal().getWidth() + VAZIO).getBytes());
+						bos.write(SEPARADOR_FILE_LOG);
+						bos.write((r.getBoundsInLocal().getHeight() + VAZIO).getBytes());
 						bos.write(SEPARADOR_FILE_LOG);
 					}
 				}
 			} else {
-				bos.write(("P".toString().getBytes()));
+				bos.write((PRESENTES_SELECIONADO.getBytes()));
 				bos.write(SEPARADOR_FILE_LOG);
-				for (Node node : listNodesRectangles2) {
+				for (Node node : listNodesRectangles) {
 					Rectangle r = (Rectangle) node;
-					if (r.getStroke().equals(Color.GREEN)) {
-						bos.write(r.getBoundsInLocal().toString().getBytes());
+					if (r.getStroke().equals(Color.DARKGREEN)) {
+						bos.write((r.getBoundsInLocal().getMinX() + VAZIO).getBytes());
+						bos.write(SEPARADOR_FILE_LOG);
+						bos.write((r.getBoundsInLocal().getWidth() + VAZIO).getBytes());
+						bos.write(SEPARADOR_FILE_LOG);
+						bos.write((r.getBoundsInLocal().getHeight() + VAZIO).getBytes());
 						bos.write(SEPARADOR_FILE_LOG);
 					}
 
@@ -246,7 +313,8 @@ public class Controller implements Initializable {
 			buttonFaltantes.setSelected(false);
 			for (Node node : listNodesRectangles) {
 				Rectangle r = (Rectangle) node;
-				r.setStroke(Color.BLUE);
+				r.setStroke(Color.DARKBLUE);
+				r.setFill(Color.STEELBLUE);
 			}
 
 		});
@@ -256,7 +324,8 @@ public class Controller implements Initializable {
 			buttonFaltantes.setSelected(true);
 			for (Node node : listNodesRectangles) {
 				Rectangle r = (Rectangle) node;
-				r.setStroke(Color.BLUE);
+				r.setStroke(Color.DARKBLUE);
+				r.setFill(Color.STEELBLUE);
 			}
 		});
 
@@ -264,7 +333,9 @@ public class Controller implements Initializable {
 			ScrollPane sp = (ScrollPane) content.getChildren().get(0);
 			StackPane st = (StackPane) sp.getContent();
 			AnchorPane ap = (AnchorPane) st.getChildren().get(0);
-			ap.getChildren().removeAll(listNodesRectangles);
+			if (listNodesRectangles != null) {
+				ap.getChildren().removeAll(listNodesRectangles);
+			}
 			coordinates = new ArrayList<String>();
 			statusMarcacao.setText(MARCACAO_REINICIADA_AGUARDANDO_MARCACAO_INICIAL);
 			coord1.setText(ZERO_STRING);
@@ -282,61 +353,6 @@ public class Controller implements Initializable {
 	 */
 	private void initializeStatusBar() {
 		status.textProperty().bind(gallery.statusProperty());
-		sizeButton.setOnAction(event -> {
-			// Validate that the main content area contains an ImageView, either
-			// directly or within scrollbars
-			if (content.getChildren().size() < 1)
-				return;
-			final Node contentNode = content.getChildren().get(0);
-			if (!(contentNode instanceof ImageView || contentNode instanceof ScrollPane))
-				return;
-
-			if (fitsize) {
-				// Switch to actual size
-				final ImageView sizeButtonImageView = new ImageView(
-						new Image(getClass().getResourceAsStream("/fitsizebutton.png")));
-				sizeButton.setGraphic(sizeButtonImageView);
-				fitsize = false;
-				resizeImage(1.0);
-			} else {
-				// Switch to window fit size
-				final ImageView sizeButtonImageView = new ImageView(
-						new Image(getClass().getResourceAsStream("/actualsizebutton.png")));
-				sizeButton.setGraphic(sizeButtonImageView);
-				fitsize = true;
-
-				ImageView imageView;
-				if (contentNode instanceof ImageView) {
-					imageView = (ImageView) contentNode;
-				} else {
-					final ScrollPane scrollPane = (ScrollPane) contentNode;
-					final StackPane stackPane = (StackPane) scrollPane.getContent();
-					imageView = (ImageView) stackPane.getChildren().get(0);
-				}
-				content.getChildren().clear();
-				imageView.fitWidthProperty().unbind();
-				imageView.fitHeightProperty().unbind();
-				imageView.fitWidthProperty().bind(content.widthProperty());
-				imageView.fitHeightProperty().bind(content.heightProperty());
-				imageView.setViewport(null);
-				content.getChildren().add(imageView);
-			}
-			sizeSlider.setValue(0);
-			content.requestFocus();
-		});
-
-		sizeSliderListener = (observable, oldValue, newValue) -> {
-			fitsize = false;
-			final ImageView actualSizeImageView = new ImageView(
-					new Image(getClass().getResourceAsStream("/fitsizebutton.png")));
-			sizeButton.setGraphic(actualSizeImageView);
-
-			double ratio = 1 + (sizeSlider.getValue() / 100);
-			ratio = ratio == 0 ? 0.01 : ratio;
-			resizeImage(ratio);
-		};
-		sizeSlider.setOnMouseReleased(event -> content.requestFocus());
-		sizeSlider.setOnKeyReleased(event -> content.requestFocus());
 	}
 
 	/**
@@ -376,6 +392,7 @@ public class Controller implements Initializable {
 	 * @param file
 	 */
 	private void loadFile(final File file) {
+
 		if (gallery != null) {
 			gallery.clear();
 		}
@@ -386,78 +403,6 @@ public class Controller implements Initializable {
 		gallery.add(item);
 		gallery.addAll(findSiblingItems(item));
 		render(item);
-	}
-
-	/**
-	 * <p>
-	 * Called by event handlers (i.e. the "Actual Size" button and the size
-	 * slider on the status bar) to shrink or grow the size of the displayed
-	 * image.
-	 * </p>
-	 *
-	 * <p>
-	 * By default, images automatically shrink or grow to fit the content area.
-	 * Once a resize operation has been explicitly called, this switches from
-	 * automatic to manual (until the "Fit to Window Size" button toggles it
-	 * back). This method resizes the image by effectively removing the previous
-	 * <code>ImageView</code> altogether, and replacing it with a new instance
-	 * having the appropriate dimensions.
-	 * </p>
-	 *
-	 * @param ratio
-	 */
-	private void resizeImage(final double ratio) {
-		// Validate that the main content area contains an ImageView, either
-		// directly or nested within scrollbars
-		if (content.getChildren().size() < 1)
-			return;
-		final Node contentNode = content.getChildren().get(0);
-		if (!(contentNode instanceof ImageView) && !(contentNode instanceof ScrollPane))
-			return;
-
-		// Clear the current main content area and ImageView settings
-		ImageView imageView;
-		if (contentNode instanceof ImageView) {
-			imageView = (ImageView) contentNode;
-		} else {
-			final ScrollPane scrollPane = (ScrollPane) contentNode;
-			final StackPane stackPane = (StackPane) scrollPane.getContent();
-			final AnchorPane anchorPane = (AnchorPane) stackPane.getChildren().get(0);
-			imageView = (ImageView) anchorPane.getChildren().get(0);
-		}
-		imageView.fitWidthProperty().unbind();
-		imageView.fitHeightProperty().unbind();
-		imageView.setViewport(null);
-		content.getChildren().clear();
-
-		// Calculate size
-		final double imageWidth = imageView.getImage().getWidth() * ratio;
-		final double imageHeight = imageView.getImage().getHeight() * ratio;
-		imageView.setFitWidth(imageWidth);
-		imageView.setFitHeight(imageHeight);
-
-		// Resize the image
-		if (imageWidth > content.getWidth() || imageHeight > content.getHeight()) {
-			// If the image is bigger than the main content area, add scroll
-			// bars
-			final AnchorPane anchor = new AnchorPane(imageView);
-			anchor.setLayoutX(imageView.getFitHeight());
-			anchor.setLayoutY(imageView.getFitWidth());
-			final StackPane stackPane = new StackPane(anchor);
-			stackPane.setLayoutX(imageView.getFitHeight());
-			stackPane.setLayoutY(imageView.getFitWidth());
-			stackPane.minWidthProperty().bind(Bindings.createDoubleBinding(
-					() -> scrollPane.getViewportBounds().getWidth(), scrollPane.viewportBoundsProperty()));
-			scrollPane = new ScrollPane(stackPane);
-			content.getChildren().add(scrollPane);
-		}
-		// else {
-		// // If the image fits within the main content area, re-add it as-is
-		// content.getChildren().add(imageView);
-		// }
-		fitsize = false;
-		renderNext();
-		
 	}
 
 	/**
@@ -518,10 +463,6 @@ public class Controller implements Initializable {
 		itemCurrent = item;
 
 		if (content.getChildren().size() > 0 && content.getChildren().get(0) instanceof ImageView) {
-			// Stop the status bar slider from resizing any previous image (this
-			// will be a no-op if there is no
-			// existing listener)
-			sizeSlider.valueProperty().removeListener(sizeSliderListener);
 
 		} else if (content.getChildren().size() > 0 && content.getChildren().get(0) instanceof MediaControl) {
 			// If the currently rendered item is a video, stop its player before
@@ -544,192 +485,229 @@ public class Controller implements Initializable {
 	 */
 	public void renderImage(final File item) {
 
-		try {
-			final String imageURL = item.toURI().toURL().toExternalForm();
-			imageView = new ImageView(new Image(imageURL));
-			StackPane stackPane = new StackPane();
-			AnchorPane anchor = new AnchorPane();
-			statusMarcacao.setText(AGUARDANDO_MARCACAO_INICIAL);
-			coord1.setText(ZERO_STRING);
-			coord2.setText(ZERO_STRING);
-			coord3.setText(ZERO_STRING);
-			nameImage.setText(item.getName());
-			resetMarcacao.setDisable(true);
-			buttonPresentes.setDisable(true);
-			buttonFaltantes.setDisable(true);
-			coordinates = new ArrayList<String>();
+		String fileNameFull = itemCurrent.getItem().getName();
+		String fileNameOutExtension = fileNameFull.substring(0, fileNameFull.lastIndexOf(PONTO));
+		if (new File(itemCurrent.getItem().getParentFile() + SEPARADOR + fileNameOutExtension + TXT_EXTENSION)
+				.exists()) {
 
-			imageView.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+			// :TODO LER ARQUIVO E TRAZER AS INFORMAÇÕES
+			//
+			// try {
+			// final String imageURL = item.toURI().toURL().toExternalForm();
+			// imageView = new ImageView(new Image(imageURL));
+			// StackPane stackPane = new StackPane();
+			// AnchorPane anchor = new AnchorPane();
+			// statusMarcacao.setText(AGUARDANDO_MARCACAO_INICIAL);
+			// coord1.setText("COORDENADA 0 E 1 DO ARQUIVO");
+			// coord2.setText("COORDENADA 2 E 3 DO ARQUIVO");
+			// coord3.setText("COORDENADA 4 E 5 DO ARQUIVO");
+			// nameImage.setText(item.getName());
+			// resetMarcacao.setDisable(false);
+			//
+			// if (true) { // posicao 6 do arquivo = "F"
+			// buttonFaltantes.setDisable(false);
+			// buttonFaltantes.setSelected(true);
+			// buttonPresentes.setDisable(true);
+			// buttonPresentes.setSelected(false);
+			// } else {
+			// buttonFaltantes.setDisable(true);
+			// buttonFaltantes.setSelected(false);
+			// buttonPresentes.setDisable(false);
+			// buttonPresentes.setSelected(true);
+			// }
+			//
+			// coordinates = new ArrayList<String>();
+			// coordinates.add(coord1.getText());
+			// coordinates.add(coord2.getText());
+			// coordinates.add(coord3.getText());
+			//
+			// } catch (Exception e) {
+			// }
 
-				private List<RetanguloAssinatura> retangulos;
+		} else {
+			try {
+				final String imageURL = item.toURI().toURL().toExternalForm();
+				imageView = new ImageView(new Image(imageURL));
+				StackPane stackPane = new StackPane();
+				AnchorPane anchor = new AnchorPane();
+				statusMarcacao.setText(AGUARDANDO_MARCACAO_INICIAL);
+				coord1.setText(ZERO_STRING);
+				coord2.setText(ZERO_STRING);
+				coord3.setText(ZERO_STRING);
+				nameImage.setText(item.getName());
+				resetMarcacao.setDisable(true);
+				buttonPresentes.setDisable(true);
+				buttonFaltantes.setDisable(true);
+				coordinates = new ArrayList<String>();
 
-				@Override
-				public void handle(MouseEvent mouseEvent) {
+				imageView.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
 
-					if (coordinates.size() == 0) {
-						coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
-						coord1.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY());
-						statusMarcacao.setText(AGUARDANDO_MARCACAO_DE_ALTURA_DE_LINHA);
-						resetMarcacao.setDisable(false);
-						buttonPresentes.setDisable(false);
-						buttonFaltantes.setDisable(false);
-						buttonFaltantes.setSelected(true);
-						x0 = mouseEvent.getX();
-						y0 = mouseEvent.getY();
-					} else if (coordinates.size() == 1) {
-						coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
-						coord2.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY());
-						statusMarcacao.setText(AGUARDANDO_MARCACAO_FINAL);
-						x1 = mouseEvent.getX();
-						y1 = mouseEvent.getY();
-					} else if (coordinates.size() == 2) {
-						coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
-						coord3.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY());
-						statusMarcacao.setText(MARCACAO_FINALIZADA);
-						x2 = mouseEvent.getX();
-						y2 = mouseEvent.getY();
+					private List<RetanguloAssinatura> retangulos;
 
-						anchor.getChildren().clear();
-						anchor.setLayoutX(imageView.getFitHeight());
-						anchor.setLayoutY(imageView.getFitWidth());
-						anchor.opacityProperty().set(1);
+					@Override
+					public void handle(MouseEvent mouseEvent) {
 
-						stackPane.getChildren().clear();
-						stackPane.setLayoutX(imageView.getFitHeight());
-						stackPane.setLayoutY(imageView.getFitWidth());
-						stackPane.opacityProperty().set(1);
-						content.setFocusTraversable(true);
+						if (coordinates.size() == 0) {
+							coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+							coord1.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY());
+							statusMarcacao.setText(AGUARDANDO_MARCACAO_DE_ALTURA_DE_LINHA);
+							resetMarcacao.setDisable(false);
+							buttonPresentes.setDisable(false);
+							buttonFaltantes.setDisable(false);
+							buttonFaltantes.setSelected(true);
+							x0 = mouseEvent.getX();
+							y0 = mouseEvent.getY();
+						} else if (coordinates.size() == 1) {
+							coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+							coord2.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY());
+							statusMarcacao.setText(AGUARDANDO_MARCACAO_FINAL);
+							x1 = mouseEvent.getX();
+							y1 = mouseEvent.getY();
+						} else if (coordinates.size() == 2) {
+							coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+							coord3.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY());
+							statusMarcacao.setText(MARCACAO_FINALIZADA);
+							x2 = mouseEvent.getX();
+							y2 = mouseEvent.getY();
 
-						int quantidadeRetangulos = (int) Math.round((((y2 - 2) - (y0 - 2)) / ((y1 - 2) - (y0 - 2))));
-						System.out.println("Quantidade de retangulos = " + quantidadeRetangulos + " - Real = "
-								+ ((y2 - y0) / (y1 - y0)));
+							anchor.getChildren().clear();
+							anchor.setLayoutX(imageView.getFitHeight());
+							anchor.setLayoutY(imageView.getFitWidth());
+							anchor.opacityProperty().set(1);
 
-						double pontoInicialX = x0;
-						double pontoInicialY = y0;
-						double largura = x2 - x1;
-						double altura = y1 - y0;
-						retangulos = calculaRetangulos(quantidadeRetangulos, largura, altura, pontoInicialY,
-								pontoInicialX);
+							stackPane.getChildren().clear();
+							stackPane.setLayoutX(imageView.getFitHeight());
+							stackPane.setLayoutY(imageView.getFitWidth());
+							stackPane.opacityProperty().set(1);
+							content.setFocusTraversable(true);
 
-						Rectangle rectangle = null;
-						listNodesRectangles = new ArrayList<Node>();
-						for (RetanguloAssinatura retangulo : retangulos) {
-							rectangle = new Rectangle(retangulo.getPontoInicialX(), retangulo.getPontoInicialY(),
-									retangulo.getLargura(), retangulo.getAltura());
-							rectangle.setStroke(Color.BLUE);
-							rectangle.setStrokeWidth(5);
-							rectangle.opacityProperty().set(0.5);
-							rectangle.setCursor(Cursor.HAND);
-							rectangle.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
-								@Override
-								public void handle(MouseEvent mouseEvent) {
-									Rectangle rectangleSelect = (Rectangle) mouseEvent.getSource();
-									if (rectangleSelect.getStroke().equals(Color.BLUE)) {
-										if (buttonFaltantes.isSelected()) {
-											rectangleSelect.setStroke(Color.RED);
+							int quantidadeRetangulos = (int) Math
+									.round((((y2 - 2) - (y0 - 2)) / ((y1 - 2) - (y0 - 2))));
+							System.out.println("Quantidade de retangulos = " + quantidadeRetangulos + " - Real = "
+									+ ((y2 - y0) / (y1 - y0)));
+
+							double pontoInicialX = x0;
+							double pontoInicialY = y0;
+							double largura = x2 - x1;
+							double altura = y1 - y0;
+							retangulos = calculaRetangulos(quantidadeRetangulos, largura, altura, pontoInicialY,
+									pontoInicialX);
+
+							Rectangle rectangle = null;
+							listNodesRectangles = new ArrayList<Node>();
+							for (RetanguloAssinatura retangulo : retangulos) {
+								rectangle = new Rectangle(retangulo.getPontoInicialX(), retangulo.getPontoInicialY(),
+										retangulo.getLargura(), retangulo.getAltura());
+								rectangle.setStroke(Color.DARKBLUE);
+								rectangle.setStrokeWidth(5);
+								rectangle.setStrokeType(StrokeType.INSIDE);
+								rectangle.setFill(Color.STEELBLUE);
+								rectangle.opacityProperty().set(0.4);
+								rectangle.setCursor(Cursor.HAND);
+								rectangle.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+									@Override
+									public void handle(MouseEvent mouseEvent) {
+										Rectangle rectangleSelect = (Rectangle) mouseEvent.getSource();
+										if (rectangleSelect.getStroke().equals(Color.DARKBLUE)) {
+											if (buttonFaltantes.isSelected()) {
+												rectangleSelect.setStroke(Color.DARKRED);
+												rectangleSelect.setFill(Color.RED);
+											} else {
+												rectangleSelect.setFill(Color.GREENYELLOW);
+												rectangleSelect.setStroke(Color.DARKGREEN);
+											}
 										} else {
-											rectangleSelect.setStroke(Color.GREEN);
+											rectangleSelect.setStroke(Color.DARKBLUE);
+											rectangleSelect.setFill(Color.STEELBLUE);
 										}
-									} else {
-										if (buttonFaltantes.isSelected()) {
-											rectangleSelect.setStroke(Color.RED);
-										} else {
-											rectangleSelect.setStroke(Color.GREEN);
-										}
+										System.out.println("Clique no retangulo " + rectangleSelect);
 									}
-									System.out.println("Clique no retangulo " + rectangleSelect);
-									stage.setAlwaysOnTop(true);
-									stage.setFocused(true);
-								}
-							});
-							listNodesRectangles.add(rectangle);
+								});
+								listNodesRectangles.add(rectangle);
+							}
+
+							buttonFaltantes.setSelected(true);
+							buttonPresentes.setSelected(false);
+							anchor.getChildren().add(imageView);
+							anchor.getChildren().addAll(listNodesRectangles);
+							stackPane.getChildren().add(anchor);
+							ScrollPane sp = (ScrollPane) content.getChildren().get(0);
+							content.getChildren().clear();
+							sp.setContent(stackPane);
+							content.getChildren().add(sp);
+						} else {
+							System.out.println(MARCACAO_PARA_ESSA_IMAGEM_FINALIZADA);
 						}
 
-						anchor.getChildren().add(imageView);
-						anchor.getChildren().addAll(listNodesRectangles);
-						stackPane.getChildren().add(anchor);
-						ScrollPane sp = (ScrollPane) content.getChildren().get(0);
-						content.getChildren().clear();
-						sp.setContent(stackPane);
-						content.getChildren().add(sp);
-					} else {
-						System.out.println(MARCACAO_PARA_ESSA_IMAGEM_FINALIZADA);
 					}
 
-				}
+					private List<RetanguloAssinatura> calculaRetangulos(int quantidadeRetangulos, double largura,
+							double altura, double pontoInicialY, double pontoInicialX) {
 
-				private List<RetanguloAssinatura> calculaRetangulos(int quantidadeRetangulos, double largura,
-						double altura, double pontoInicialY, double pontoInicialX) {
+						double pontoInicialInc = pontoInicialY;
 
-					double pontoInicialInc = pontoInicialY;
-
-					List<RetanguloAssinatura> retorno = new ArrayList<RetanguloAssinatura>();
-					RetanguloAssinatura r;
-					for (int i = 1; i <= quantidadeRetangulos; i++) {
-						r = new RetanguloAssinatura();
-						r.setId((int) i);
-						r.setPontoInicialY(pontoInicialInc);
-						r.setPontoInicialX(pontoInicialX);
-						r.setAltura(altura);
-						r.setLargura(largura);
-						pontoInicialInc += altura;
-						retorno.add(r);
+						List<RetanguloAssinatura> retorno = new ArrayList<RetanguloAssinatura>();
+						RetanguloAssinatura r;
+						for (int i = 1; i <= quantidadeRetangulos; i++) {
+							r = new RetanguloAssinatura();
+							r.setId((int) i);
+							r.setPontoInicialY(pontoInicialInc);
+							r.setPontoInicialX(pontoInicialX);
+							r.setAltura(altura);
+							r.setLargura(largura);
+							pontoInicialInc += altura;
+							retorno.add(r);
+						}
+						return retorno;
 					}
-					return retorno;
-				}
-			});
+				});
 
-			imageView.addEventFilter(MouseEvent.MOUSE_MOVED, new EventHandler<MouseEvent>() {
-				@Override
-				public void handle(MouseEvent mouseEvent) {
-					coords.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
-				}
-			});
+				imageView.addEventFilter(MouseEvent.MOUSE_MOVED, new EventHandler<MouseEvent>() {
+					@Override
+					public void handle(MouseEvent mouseEvent) {
+						coords.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+					}
+				});
 
-			imageView.setPreserveRatio(true);
-			imageView.fitWidthProperty().bind(content.widthProperty());
-			imageView.fitHeightProperty().bind(content.heightProperty());
-			imageView.setCursor(Cursor.CROSSHAIR);
-			imageView.fitWidthProperty().unbind();
-			imageView.fitHeightProperty().unbind();
-			imageView.setViewport(null);
-			final double imageWidth = imageView.getImage().getWidth() * 1;
-			final double imageHeight = imageView.getImage().getHeight() * 1;
-			imageView.setFitWidth(imageWidth);
-			imageView.setFitHeight(imageHeight);
+				imageView.setPreserveRatio(true);
+				imageView.fitWidthProperty().bind(content.widthProperty());
+				imageView.fitHeightProperty().bind(content.heightProperty());
+				imageView.setCursor(Cursor.CROSSHAIR);
+				imageView.fitWidthProperty().unbind();
+				imageView.fitHeightProperty().unbind();
+				imageView.setViewport(null);
+				final double imageWidth = imageView.getImage().getWidth() * 1;
+				final double imageHeight = imageView.getImage().getHeight() * 1;
+				imageView.setFitWidth(imageWidth);
+				imageView.setFitHeight(imageHeight);
 
-			content.getChildren().clear();
+				content.getChildren().clear();
 
-			anchor.setLayoutX(imageView.getFitHeight());
-			anchor.setLayoutY(imageView.getFitWidth());
-			anchor.opacityProperty().set(1);
+				anchor.setLayoutX(imageView.getFitHeight());
+				anchor.setLayoutY(imageView.getFitWidth());
+				anchor.opacityProperty().set(1);
 
-			stackPane.setLayoutX(imageView.getFitHeight());
-			stackPane.setLayoutY(imageView.getFitWidth());
-			stackPane.opacityProperty().set(1);
+				stackPane.setLayoutX(imageView.getFitHeight());
+				stackPane.setLayoutY(imageView.getFitWidth());
+				stackPane.opacityProperty().set(1);
 
-			anchor.getChildren().add(imageView);
-			stackPane.getChildren().add(anchor);
-			scrollPane = new ScrollPane(stackPane);
-			// content.getChildren().clear();
-			content.getChildren().add(scrollPane);
-			sizeButton.setDisable(false);
-			sizeSlider.setDisable(false);
-			sizeSlider.valueProperty().addListener(sizeSliderListener);
-			// resizeImage(1.0);
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
+				anchor.getChildren().add(imageView);
+				stackPane.getChildren().add(anchor);
+				scrollPane = new ScrollPane(stackPane);
+				// content.getChildren().clear();
+				content.getChildren().add(scrollPane);
+			} catch (MalformedURLException e) {
+				e.printStackTrace();
+			}
+
 		}
+
 	}
 
-	@SuppressWarnings("deprecation")
 	void markEvent(KeyEvent event) {
 		if (!gallery.isEmpty()) {
-			if (event.getCode().equals(KeyCode.M)) {
-				System.out.println("Apertou M");
-				System.out.println(imageView.getImage().impl_getUrl());
-				Bounds boundsInScreen = imageView.localToScreen(imageView.getBoundsInLocal());
-				System.out.println(boundsInScreen);
+			if (event.getCode().equals(KeyCode.S)) {
+				System.out.println("Apertou S");
 			}
 		}
 	}

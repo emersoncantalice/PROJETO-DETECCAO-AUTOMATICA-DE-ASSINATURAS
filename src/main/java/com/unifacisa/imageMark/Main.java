@@ -46,13 +46,14 @@ public class Main extends Application {
 		final Parent root = loader.load();
 		final Scene scene = new Scene(root);
 		scene.addEventHandler(KeyEvent.KEY_PRESSED, controller::keyPressedEvent);
+		scene.addEventHandler(KeyEvent.KEY_PRESSED, controller::save);
 		primaryStage.setScene(scene);
 		primaryStage.setScene(scene);
 		primaryStage.getIcons().add(new Image(getClass().getResource("/icon.png").toString()));
 		primaryStage.setTitle("Image Mark - Unifacisa");
 		primaryStage.setMinWidth(816);
 		primaryStage.setMinHeight(600);
-//		primaryStage.setFullScreen(true);
+		// primaryStage.setFullScreen(true);
 		primaryStage.show();
 	}
 
