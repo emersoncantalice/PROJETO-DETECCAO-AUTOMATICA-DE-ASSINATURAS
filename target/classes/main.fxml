@@ -43,7 +43,7 @@
         </MenuBar>
     </top>
     <bottom>
-        <GridPane alignment="CENTER" prefHeight="32.0" prefWidth="1201.0" style="-fx-border-width: 2 0 0 0; -fx-border-color: black;" BorderPane.alignment="CENTER">
+        <GridPane alignment="CENTER" prefHeight="32.0" prefWidth="1196.0" style="-fx-border-width: 2 0 0 0; -fx-border-color: black;" BorderPane.alignment="CENTER">
             <columnConstraints>
                 <ColumnConstraints hgrow="SOMETIMES" maxWidth="632.0" minWidth="10.0" prefWidth="503.0" />
                 <ColumnConstraints fillWidth="false" halignment="RIGHT" hgrow="SOMETIMES" maxWidth="395.0" minWidth="10.0" prefWidth="297.0" />
@@ -57,31 +57,7 @@
                        <Insets />
                    </opaqueInsets>
                </Label>
-            <HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="159.0" GridPane.columnIndex="1" GridPane.halignment="RIGHT">
-               <children>
-                  <Button fx:id="sizeButton" ellipsisString="" graphicTextGap="0.0" mnemonicParsing="false">
-                     <graphic>
-                        <ImageView fitHeight="16.0" fitWidth="41.0" pickOnBounds="true" preserveRatio="true">
-                           <image>
-                              <Image url="@actualsizebutton.png" />
-                           </image>
-                        </ImageView>
-                     </graphic>
-                     <opaqueInsets>
-                        <Insets left="5.0" />
-                     </opaqueInsets>
-                     <HBox.margin>
-                        <Insets right="5.0" />
-                     </HBox.margin>
-                  </Button>
-                  <Slider fx:id="sizeSlider" max="100.0" min="-100.0" minWidth="-Infinity" prefHeight="30.0" prefWidth="125.0">
-                     <HBox.margin>
-                        <Insets right="10.0" />
-                     </HBox.margin>
-                  </Slider>
-               </children>
-            </HBox>
-            <Text fx:id="coords" strokeType="OUTSIDE" strokeWidth="0.0" text="0,0" textAlignment="RIGHT" wrappingWidth="489.13671875" />
+            <Text fx:id="coords" strokeType="OUTSIDE" strokeWidth="0.0" text="0,0" textAlignment="RIGHT" wrappingWidth="609.13671875" />
            </children>
         </GridPane>
     </bottom>
