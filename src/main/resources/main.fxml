@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.*?>
 <?import javafx.scene.shape.*?>
 <?import javafx.scene.text.*?>
 <?import java.lang.*?>
@@ -36,99 +37,109 @@
                </Menu>
                <Menu mnemonicParsing="false" text="Ajuda">
                   <items>
-                      <MenuItem fx:id="helpAbout" mnemonicParsing="false" text="Sobre" />
+                      <MenuItem fx:id="tutorial" mnemonicParsing="false" text="Tutorial" />
+                  <MenuItem fx:id="helpAbout" mnemonicParsing="false" text="Sobre" />
                   </items>
                </Menu>
            </menus>
         </MenuBar>
     </top>
     <bottom>
-        <GridPane alignment="CENTER" prefHeight="32.0" prefWidth="1196.0" style="-fx-border-width: 2 0 0 0; -fx-border-color: black;" BorderPane.alignment="CENTER">
+        <GridPane alignment="CENTER" prefHeight="32.0" prefWidth="1149.0" style="-fx-border-width: 2 0 0 0; -fx-border-color: #0f75bc;" BorderPane.alignment="CENTER">
             <columnConstraints>
-                <ColumnConstraints hgrow="SOMETIMES" maxWidth="632.0" minWidth="10.0" prefWidth="503.0" />
-                <ColumnConstraints fillWidth="false" halignment="RIGHT" hgrow="SOMETIMES" maxWidth="395.0" minWidth="10.0" prefWidth="297.0" />
+            <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="1200.0" minWidth="10.0" prefWidth="265.0" />
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="1200.0" minWidth="10.0" prefWidth="767.0" />
+                <ColumnConstraints fillWidth="false" halignment="RIGHT" hgrow="SOMETIMES" maxWidth="417.0" minWidth="0.0" prefWidth="265.0" />
             </columnConstraints>
             <rowConstraints>
-                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints vgrow="SOMETIMES" />
             </rowConstraints>
            <children>
-               <Label fx:id="status" style="-fx-padding: 0 0 0 5;" text="Nenhum arquivo selecionado">
-                   <opaqueInsets>
-                       <Insets />
-                   </opaqueInsets>
-               </Label>
-            <Text fx:id="coords" strokeType="OUTSIDE" strokeWidth="0.0" text="0,0" textAlignment="RIGHT" wrappingWidth="609.13671875" />
+            <Text fx:id="coords" strokeType="OUTSIDE" strokeWidth="0.0" text="0,0" textAlignment="CENTER" wrappingWidth="231.13671875" GridPane.columnIndex="2" />
+            <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Copyright Oficial © - UNIFACISA - Campina Grande" textAlignment="CENTER" wrappingWidth="732.90625" GridPane.columnIndex="1" />
+            <Text fx:id="status" strokeType="OUTSIDE" strokeWidth="0.0" text="Nenhum arquivo selecionado" textAlignment="CENTER" wrappingWidth="231.13671875" />
            </children>
         </GridPane>
     </bottom>
    <right>
-      <AnchorPane prefHeight="643.0" prefWidth="264.0" style="-fx-background-color: FFE;" BorderPane.alignment="CENTER">
+      <AnchorPane prefHeight="643.0" prefWidth="264.0" style="-fx-background-color: #d3d3d3;" BorderPane.alignment="CENTER">
          <children>
-            <AnchorPane layoutX="28.0" layoutY="29.0" prefHeight="221.0" prefWidth="244.0" style="-fx-background-color: blue;" />
-            <Text layoutX="49.0" layoutY="268.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Imagem:">
+            <Region layoutX="14.0" layoutY="524.0" prefHeight="35.0" prefWidth="284.0" style="-fx-border-color: #0f75bc;" />
+            <Text fx:id="pontoInicial" layoutX="41.0" layoutY="512.0" strokeType="OUTSIDE" strokeWidth="0.0" text="PONTO INICIAL">
+               <font>
+                  <Font name="System Bold" size="13.0" />
+               </font>
+            </Text>
+            <Region layoutX="14.0" layoutY="490.0" prefHeight="35.0" prefWidth="284.0" style="-fx-border-color: #0f75bc;" />
+            <Region layoutX="14.0" layoutY="456.0" prefHeight="35.0" prefWidth="284.0" style="-fx-border-color: #0f75bc; -fx-background-color: #6baedd;" />
+            <Region layoutX="14.0" layoutY="456.0" prefHeight="137.0" prefWidth="139.0" style="-fx-border-color: #0f75bc;" />
+            <StackPane fx:id="contentRight" layoutX="28.0" layoutY="13.0">
+               <children>
+                  <AnchorPane fx:id="imageZoom" layoutX="28.0" layoutY="13.0" prefHeight="260.0" prefWidth="260.0" style="-fx-background-color: blue;" />
+               </children>
+            </StackPane>
+            <Region layoutX="14.0" layoutY="456.0" prefHeight="137.0" prefWidth="284.0" style="-fx-border-color: #0f75bc;" />
+            <Text layoutX="46.0" layoutY="288.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Imagem:">
                <font>
                   <Font size="9.0" />
                </font></Text>
-            <Text layoutX="75.0" layoutY="477.0" strokeType="OUTSIDE" strokeWidth="0.0" text="PONTO">
+            <Text fill="WHITE" layoutX="63.0" layoutY="479.0" strokeType="OUTSIDE" strokeWidth="0.0" text="PONTO">
                <font>
                   <Font name="System Bold" size="13.0" />
                </font>
             </Text>
-            <Text layoutX="165.0" layoutY="478.0" strokeType="OUTSIDE" strokeWidth="0.0" text="COORDENADA">
+            <Text fill="WHITE" layoutX="181.0" layoutY="479.0" strokeType="OUTSIDE" strokeWidth="0.0" text="COORDENADA">
                <font>
                   <Font name="System Bold" size="13.0" />
                </font>
             </Text>
-            <Text fx:id="statusMarcacao" layoutX="28.0" layoutY="318.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Aguardando imagem..." textAlignment="CENTER" wrappingWidth="244.13671875">
+            <Text fx:id="statusMarcacao" layoutX="22.0" layoutY="347.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Aguardando imagem..." textAlignment="CENTER" wrappingWidth="262.13671875">
                <font>
                   <Font name="System Bold" size="18.0" />
                </font>
             </Text>
-            <Text fx:id="nameImage" layoutX="88.0" layoutY="268.0" strokeType="OUTSIDE" strokeWidth="0.0" wrappingWidth="187.435546875">
+            <Text fx:id="nameImage" layoutX="85.0" layoutY="289.0" strokeType="OUTSIDE" strokeWidth="0.0" wrappingWidth="187.435546875">
                <font>
                   <Font size="9.0" />
                </font>
             </Text>
-            <Text fx:id="pontoInicial" layoutX="54.0" layoutY="512.0" strokeType="OUTSIDE" strokeWidth="0.0" text="PONTO INICIAL">
+            <Text fx:id="alturaLinha" layoutX="41.0" layoutY="544.0" strokeType="OUTSIDE" strokeWidth="0.0" text="ALTURA LINHA">
                <font>
                   <Font name="System Bold" size="13.0" />
                </font>
             </Text>
-            <Text fx:id="alturaLinha" layoutX="54.0" layoutY="544.0" strokeType="OUTSIDE" strokeWidth="0.0" text="ALTURA LINHA">
+            <Text fx:id="pontoFinal" layoutX="44.0" layoutY="579.0" strokeType="OUTSIDE" strokeWidth="0.0" text="PONTO FINAL">
                <font>
                   <Font name="System Bold" size="13.0" />
                </font>
             </Text>
-            <Text fx:id="pontoFinal" layoutX="57.0" layoutY="579.0" strokeType="OUTSIDE" strokeWidth="0.0" text="PONTO FINAL">
+            <Text fx:id="coord1" layoutX="187.0" layoutY="512.0" strokeType="OUTSIDE" strokeWidth="0.0" text="0,0">
                <font>
                   <Font name="System Bold" size="13.0" />
                </font>
             </Text>
-            <Text fx:id="coord1" layoutX="187.0" layoutY="511.0" strokeType="OUTSIDE" strokeWidth="0.0" text="0,0">
+            <Text fx:id="coord2" layoutX="187.0" layoutY="544.0" strokeType="OUTSIDE" strokeWidth="0.0" text="0,0">
                <font>
                   <Font name="System Bold" size="13.0" />
                </font>
             </Text>
-            <Text fx:id="coord2" layoutX="187.0" layoutY="543.0" strokeType="OUTSIDE" strokeWidth="0.0" text="0,0">
+            <Text fx:id="coord3" layoutX="187.0" layoutY="579.0" strokeType="OUTSIDE" strokeWidth="0.0" text="0,0">
                <font>
                   <Font name="System Bold" size="13.0" />
                </font>
             </Text>
-            <Text fx:id="coord3" layoutX="187.0" layoutY="578.0" strokeType="OUTSIDE" strokeWidth="0.0" text="0,0">
-               <font>
-                  <Font name="System Bold" size="13.0" />
-               </font>
-            </Text>
-            <Line endX="100.0" layoutX="208.0" layoutY="444.0" startX="-200.0" />
-            <Button fx:id="resetMarcacao" layoutX="20.0" layoutY="409.0" mnemonicParsing="false" text="Reset" />
-            <RadioButton fx:id="buttonPresentes" layoutX="120.0" layoutY="413.0" mnemonicParsing="false" text="Presentes" textFill="#19ae14" />
-            <RadioButton fx:id="buttonFaltantes" layoutX="201.0" layoutY="413.0" mnemonicParsing="false" text="Faltantes" textFill="#f20000" />
-            <Line endX="100.0" layoutX="209.0" layoutY="395.0" startX="-200.0" />
-            <Text layoutX="181.0" layoutY="406.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Marcar os:">
+            <Line endX="100.0" layoutX="206.0" layoutY="444.0" startX="-200.0" />
+            <Button fx:id="resetMarcacao" layoutX="20.0" layoutY="406.0" mnemonicParsing="false" prefHeight="28.0" prefWidth="46.0" style="-fx-color: black; -fx-padding: 5px; -fx-background-color: #0f75bc; -fx-background-radius: 10px;" text="Reset" />
+            <RadioButton fx:id="buttonPresentes" layoutX="120.0" layoutY="418.0" mnemonicParsing="false" text="Presentes" textFill="#19ae14" />
+            <RadioButton fx:id="buttonFaltantes" layoutX="201.0" layoutY="418.0" mnemonicParsing="false" text="Faltantes" textFill="#f20000" />
+            <Line endX="100.0" layoutX="206.0" layoutY="395.0" startX="-200.0" />
+            <Text layoutX="181.0" layoutY="411.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Marcar os:">
                <font>
                   <Font size="9.0" />
                </font>
             </Text>
+            <Button fx:id="outFocus" layoutX="27.0" layoutY="604.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="266.0" style="-fx-color: black; -fx-padding: 5px; -fx-background-color: #0f75bc; -fx-background-radius: 10px;" text="Tirar foco da marcação" />
+            <Line endX="100.0" layoutX="205.0" layoutY="296.0" startX="-200.0" />
          </children>
       </AnchorPane>
    </right>

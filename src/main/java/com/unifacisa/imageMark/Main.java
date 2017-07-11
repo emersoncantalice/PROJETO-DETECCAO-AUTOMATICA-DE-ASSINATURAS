@@ -1,5 +1,10 @@
 package com.unifacisa.imageMark;
 
+import java.awt.Dimension;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
+import java.awt.Toolkit;
+
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -51,8 +56,9 @@ public class Main extends Application {
 		primaryStage.setScene(scene);
 		primaryStage.getIcons().add(new Image(getClass().getResource("/icon.png").toString()));
 		primaryStage.setTitle("Image Mark - Unifacisa");
-		primaryStage.setMinWidth(816);
-		primaryStage.setMinHeight(600);
+		primaryStage.setMinWidth(1220);
+		primaryStage.setMinHeight(700);
+		primaryStage.setMaximized(true);
 		// primaryStage.setFullScreen(true);
 		primaryStage.show();
 	}

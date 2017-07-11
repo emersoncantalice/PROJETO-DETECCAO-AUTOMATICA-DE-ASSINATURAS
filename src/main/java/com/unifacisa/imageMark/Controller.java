@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.Scanner;
 import java.util.stream.Collectors;
 
 import javafx.application.Platform;
@@ -22,7 +23,6 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckMenuItem;
-import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.ScrollPane;
@@ -54,6 +54,7 @@ public class Controller implements Initializable {
 	private static final String PRESENTES_SELECIONADO = "P";
 	private static final String MARCACAO_REINICIADA_AGUARDANDO_MARCACAO_INICIAL = "Marcação reiniciada, aguardando marcação inicial";
 	private static final byte[] SEPARADOR_FILE_LOG = "#@".getBytes();
+	private static final String SEPARADOR_FILE = "#@";
 	private static final String MARCACAO_PARA_ESSA_IMAGEM_FINALIZADA = "Marcação para essa imagem finalizada";
 	private static final String PX = "px";
 	private static final String VIRGULA = ",";
@@ -61,7 +62,7 @@ public class Controller implements Initializable {
 	private static final String AGUARDANDO_MARCACAO_INICIAL = "Aguardando marcação inicial";
 	private static final String AGUARDANDO_MARCACAO_DE_ALTURA_DE_LINHA = "Aguardando marcação de altura de linha";
 	private static final String AGUARDANDO_MARCACAO_FINAL = "Aguardando marcação final";
-	private static final String MARCACAO_FINALIZADA = "Marcação finalizada!";
+	private static final String MARCACAO_FINALIZADA = "Marcação finalizada!\nTecle 'S' para salvar.";
 	private static final String SEPARADOR = System.getProperty("file.separator");
 
 	@FXML
@@ -75,11 +76,19 @@ public class Controller implements Initializable {
 	@FXML
 	private MenuItem helpAbout;
 	@FXML
-	private Label status;
+	private MenuItem tutorial;
+	@FXML
+	private Text status;
 	@FXML
 	private StackPane content;
 	@FXML
+	private StackPane contentRight;
+	@FXML
+	private AnchorPane imageZoom;
+	@FXML
 	private Button resetMarcacao;
+	@FXML
+	private Button outFocus;
 	@FXML
 	private Text coords;
 	@FXML
@@ -117,6 +126,8 @@ public class Controller implements Initializable {
 	private double y1;
 	private double x2;
 	private double y2;
+	private List<RetanguloAssinatura> retangulos;
+	private boolean refazer = false;
 
 	/**
 	 * Called automatically by JavaFX when creating the UI.
@@ -158,9 +169,6 @@ public class Controller implements Initializable {
 	void keyPressedEvent(KeyEvent event) {
 		if (!gallery.isEmpty()) {
 			if (event.getCode().equals(KeyCode.RIGHT)) {
-				// if (statusMarcacao.getText().equals(MARCACAO_FINALIZADA)) {
-				// salvarLog(coordinates, listNodesRectangles);
-				// }
 				renderNext();
 			} else if (event.getCode().equals(KeyCode.LEFT)) {
 				renderPrevious();
@@ -185,7 +193,14 @@ public class Controller implements Initializable {
 					coord2.setText(ZERO_STRING);
 					coord3.setText(ZERO_STRING);
 				} else {
-					System.out.println("Marcação não finalizada, são é possivel salvar");
+					final Alert dialog = new Alert(Alert.AlertType.NONE,
+							"Marcação ainda não foi finalizada.\n\nPara salvar é necessario chegar ao menos no passo 4 da marcação.\nQuaquer dúvida clique em 'Ajuda -> Tutorial', no menu superior. ",
+							ButtonType.CLOSE);
+					dialog.setTitle("Observe.");
+
+					((Stage) dialog.getDialogPane().getScene().getWindow()).getIcons()
+							.add(new Image(getClass().getResource("/icon.png").toString()));
+					dialog.showAndWait();
 				}
 				renderNext();
 			}
@@ -229,7 +244,6 @@ public class Controller implements Initializable {
 			String[] coord1 = coord2.getText().split(VIRGULA);
 			String[] coord2 = coord3.getText().split(VIRGULA);
 
-			bos.write(SEPARADOR_FILE_LOG);
 			bos.write((coord0[0].getBytes()));
 			bos.write(SEPARADOR_FILE_LOG);
 			bos.write((coord0[1].getBytes()));
@@ -251,11 +265,13 @@ public class Controller implements Initializable {
 				for (Node node : listNodesRectangles) {
 					Rectangle r = (Rectangle) node;
 					if (r.getStroke().equals(Color.DARKRED)) {
-						bos.write((r.getBoundsInLocal().getMinX() + VAZIO).getBytes());
+						bos.write((r.getX() + VAZIO).getBytes());
 						bos.write(SEPARADOR_FILE_LOG);
-						bos.write((r.getBoundsInLocal().getWidth() + VAZIO).getBytes());
+						bos.write((r.getY() + VAZIO).getBytes());
 						bos.write(SEPARADOR_FILE_LOG);
-						bos.write((r.getBoundsInLocal().getHeight() + VAZIO).getBytes());
+						bos.write((r.getWidth() + VAZIO).getBytes());
+						bos.write(SEPARADOR_FILE_LOG);
+						bos.write((r.getHeight() + VAZIO).getBytes());
 						bos.write(SEPARADOR_FILE_LOG);
 					}
 				}
@@ -265,11 +281,13 @@ public class Controller implements Initializable {
 				for (Node node : listNodesRectangles) {
 					Rectangle r = (Rectangle) node;
 					if (r.getStroke().equals(Color.DARKGREEN)) {
-						bos.write((r.getBoundsInLocal().getMinX() + VAZIO).getBytes());
+						bos.write((r.getX() + VAZIO).getBytes());
 						bos.write(SEPARADOR_FILE_LOG);
-						bos.write((r.getBoundsInLocal().getWidth() + VAZIO).getBytes());
+						bos.write((r.getY() + VAZIO).getBytes());
 						bos.write(SEPARADOR_FILE_LOG);
-						bos.write((r.getBoundsInLocal().getHeight() + VAZIO).getBytes());
+						bos.write((r.getWidth() + VAZIO).getBytes());
+						bos.write(SEPARADOR_FILE_LOG);
+						bos.write((r.getHeight() + VAZIO).getBytes());
 						bos.write(SEPARADOR_FILE_LOG);
 					}
 
@@ -300,7 +318,30 @@ public class Controller implements Initializable {
 
 		helpAbout.setOnAction(actionEvent -> {
 			final Alert dialog = new Alert(Alert.AlertType.NONE,
-					"Unifacisa - Image Mark\nProjeto: detecção de assinaturas\n\n", ButtonType.CLOSE);
+					"Unifacisa - Image Mark\nProjeto: detecção de assinaturas\n\nVersão 1.0.0", ButtonType.CLOSE);
+			dialog.setTitle("Sobre");
+
+			((Stage) dialog.getDialogPane().getScene().getWindow()).getIcons()
+					.add(new Image(getClass().getResource("/icon.png").toString()));
+			dialog.showAndWait();
+		});
+
+		tutorial.setOnAction(actionEvent -> {
+			final Alert dialog = new Alert(Alert.AlertType.NONE,
+					"Atalhos:\n\n'S'" + " - Após finalizar a marcação, para salvar o arquivo de log.\n'<- e ->' Para "
+							+ "navegar pelas imagens da pasta selecionada\n'Clique' Para selecionar os pontos"
+							+ " da imagem\nObs:. Para refazer uma marcação basta clicar sobre a imagem de uma marcação"
+							+ " já concluída.\n\nComo usar:\nPasso 1 - Carregue uma imagem de um diretório, todas"
+							+ " as demais desse diretótio serão carregadas. (.JPG)\nPasso 2 - Clique no primeiro"
+							+ " ponto da imagem, o primeiro ponto é o vertice do primeiro aluno da lista."
+							+ "\nPasso 3 - Clique no segundo ponto da lista, correponde a altura da linha"
+							+ " e é o vertice inferior esquerdo do primeiro aluno da lista\nPasso 4 - Clique "
+							+ "no vertice inferior direito do ultimo aluno da lista\n\n Os retangulos de "
+							+ "marcação serão automaticamente gerados\n\nPasso 5 - Selecione o check "
+							+ "correspondente aos 'Presentes' ou 'Faltantes'\nPasso 6 - Tecle 'S' para "
+							+ "salvar a marcação\n\n É direcionado para a próxima imagem, repita esse processo"
+							+ " para as ouras listas.",
+					ButtonType.CLOSE);
 			dialog.setTitle("Sobre");
 
 			((Stage) dialog.getDialogPane().getScene().getWindow()).getIcons()
@@ -341,6 +382,9 @@ public class Controller implements Initializable {
 			coord1.setText(ZERO_STRING);
 			coord2.setText(ZERO_STRING);
 			coord3.setText(ZERO_STRING);
+		});
+
+		outFocus.setOnAction(ActionEvent -> {
 		});
 
 		buttonFaltantes.setDisable(true);
@@ -483,48 +527,168 @@ public class Controller implements Initializable {
 	 *
 	 * @param item
 	 */
+	@SuppressWarnings("resource")
 	public void renderImage(final File item) {
 
 		String fileNameFull = itemCurrent.getItem().getName();
 		String fileNameOutExtension = fileNameFull.substring(0, fileNameFull.lastIndexOf(PONTO));
-		if (new File(itemCurrent.getItem().getParentFile() + SEPARADOR + fileNameOutExtension + TXT_EXTENSION)
-				.exists()) {
+		if (new File(itemCurrent.getItem().getParentFile() + SEPARADOR + fileNameOutExtension + TXT_EXTENSION).exists()
+				&& !refazer) {
+			refazer = false;
+			try {
+				File log = new File(
+						itemCurrent.getItem().getParentFile() + SEPARADOR + fileNameOutExtension + TXT_EXTENSION);
+				Scanner leitor = new Scanner(log);
+				String linhasDoArquivo = new String();
+				linhasDoArquivo = leitor.nextLine();
+				String[] valores = linhasDoArquivo.split(SEPARADOR_FILE);
+				final String imageURL = item.toURI().toURL().toExternalForm();
+				imageView = new ImageView(new Image(imageURL));
+				StackPane stackPane = new StackPane();
+				AnchorPane anchor = new AnchorPane();
+				x0 = Double.parseDouble(valores[0]);
+				y0 = Double.parseDouble(valores[1]);
+				x1 = Double.parseDouble(valores[2]);
+				y1 = Double.parseDouble(valores[3]);
+				x2 = Double.parseDouble(valores[4]);
+				y2 = Double.parseDouble(valores[5]);
+				// statusMarcacao.setText(AGUARDANDO_MARCACAO_INICIAL);
+				coord1.setText(valores[0] + VIRGULA + valores[1]);
+				coord2.setText(valores[2] + VIRGULA + valores[3]);
+				coord3.setText(valores[4] + VIRGULA + valores[5]);
+				nameImage.setText(item.getName());
+				resetMarcacao.setDisable(false);
 
-			// :TODO LER ARQUIVO E TRAZER AS INFORMAÇÕES
-			//
-			// try {
-			// final String imageURL = item.toURI().toURL().toExternalForm();
-			// imageView = new ImageView(new Image(imageURL));
-			// StackPane stackPane = new StackPane();
-			// AnchorPane anchor = new AnchorPane();
-			// statusMarcacao.setText(AGUARDANDO_MARCACAO_INICIAL);
-			// coord1.setText("COORDENADA 0 E 1 DO ARQUIVO");
-			// coord2.setText("COORDENADA 2 E 3 DO ARQUIVO");
-			// coord3.setText("COORDENADA 4 E 5 DO ARQUIVO");
-			// nameImage.setText(item.getName());
-			// resetMarcacao.setDisable(false);
-			//
-			// if (true) { // posicao 6 do arquivo = "F"
-			// buttonFaltantes.setDisable(false);
-			// buttonFaltantes.setSelected(true);
-			// buttonPresentes.setDisable(true);
-			// buttonPresentes.setSelected(false);
-			// } else {
-			// buttonFaltantes.setDisable(true);
-			// buttonFaltantes.setSelected(false);
-			// buttonPresentes.setDisable(false);
-			// buttonPresentes.setSelected(true);
-			// }
-			//
-			// coordinates = new ArrayList<String>();
-			// coordinates.add(coord1.getText());
-			// coordinates.add(coord2.getText());
-			// coordinates.add(coord3.getText());
-			//
-			// } catch (Exception e) {
-			// }
+				coordinates = new ArrayList<String>();
+				coordinates.add(coord1.getText());
+				coordinates.add(coord2.getText());
+				coordinates.add(coord3.getText());
+				statusMarcacao.setText(MARCACAO_FINALIZADA);
 
+				int quantidadeRetangulos = (int) Math.round((((y2 - 2) - (y0 - 2)) / ((y1 - 2) - (y0 - 2))));
+				System.out.println(
+						"Quantidade de retangulos = " + quantidadeRetangulos + " - Real = " + ((y2 - y0) / (y1 - y0)));
+
+				double pontoInicialX = x0;
+				double pontoInicialY = y0;
+				double largura = x2 - x1;
+				double altura = y1 - y0;
+
+				imageView.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+					@Override
+					public void handle(MouseEvent mouseEvent) {
+						final Alert dialog = new Alert(Alert.AlertType.WARNING, "Deseja refazer essa marcação?\n\n",
+								ButtonType.NO, ButtonType.YES);
+						dialog.setTitle("Image View - Alerta!");
+
+						((Stage) dialog.getDialogPane().getScene().getWindow()).getIcons()
+								.add(new Image(getClass().getResource("/icon.png").toString()));
+						dialog.showAndWait();
+
+						if (dialog.getResult().equals(ButtonType.YES)) {
+							refazer = true;
+							ScrollPane sp = (ScrollPane) content.getChildren().get(0);
+							StackPane st = (StackPane) sp.getContent();
+							AnchorPane ap = (AnchorPane) st.getChildren().get(0);
+							if (listNodesRectangles != null) {
+								ap.getChildren().removeAll(listNodesRectangles);
+							}
+							coordinates = new ArrayList<String>();
+							statusMarcacao.setText(MARCACAO_REINICIADA_AGUARDANDO_MARCACAO_INICIAL);
+							coord1.setText(ZERO_STRING);
+							coord2.setText(ZERO_STRING);
+							coord3.setText(ZERO_STRING);
+							renderImage(item);
+						} else {
+						}
+					}
+				});
+
+				imageView.addEventFilter(MouseEvent.MOUSE_MOVED, new EventHandler<MouseEvent>() {
+					@Override
+					public void handle(MouseEvent mouseEvent) {
+						coords.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+					}
+				});
+
+				retangulos = calculaRetangulos(quantidadeRetangulos, largura, altura, pontoInicialY, pontoInicialX);
+
+				Rectangle rectangle = null;
+				listNodesRectangles = new ArrayList<Node>();
+				for (RetanguloAssinatura retangulo : retangulos) {
+					rectangle = new Rectangle(retangulo.getPontoInicialX(), retangulo.getPontoInicialY(),
+							retangulo.getLargura(), retangulo.getAltura());
+
+					rectangle.setStroke(Color.DARKBLUE);
+					rectangle.setFill(Color.STEELBLUE);
+
+					for (int i = 7; i < valores.length; i += 4) {
+						if (rectangle.getX() == Double.parseDouble(valores[i])
+								&& rectangle.getY() == Double.parseDouble(valores[i + 1])) {
+							if (valores[6].equals(FALTANTES_SELECIONADO)) {
+								rectangle.setStroke(Color.DARKRED);
+								rectangle.setFill(Color.RED);
+
+							} else {
+								rectangle.setStroke(Color.DARKGREEN);
+								rectangle.setFill(Color.GREENYELLOW);
+							}
+						}
+					}
+					rectangle.setStrokeWidth(5);
+					rectangle.setStrokeType(StrokeType.INSIDE);
+					rectangle.opacityProperty().set(0.4);
+					rectangle.setCursor(Cursor.HAND);
+					rectangle.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+						@Override
+						public void handle(MouseEvent mouseEvent) {
+							Rectangle rectangleSelect = (Rectangle) mouseEvent.getSource();
+							if (rectangleSelect.getStroke().equals(Color.DARKBLUE)) {
+								if (buttonFaltantes.isSelected()) {
+									rectangleSelect.setStroke(Color.DARKRED);
+									rectangleSelect.setFill(Color.RED);
+								} else {
+									rectangleSelect.setFill(Color.GREENYELLOW);
+									rectangleSelect.setStroke(Color.DARKGREEN);
+								}
+							} else {
+								rectangleSelect.setStroke(Color.DARKBLUE);
+								rectangleSelect.setFill(Color.STEELBLUE);
+							}
+							System.out.println("Clique no retangulo " + rectangleSelect);
+						}
+					});
+					listNodesRectangles.add(rectangle);
+				}
+
+				if (valores[6].equals(FALTANTES_SELECIONADO)) {
+					buttonFaltantes.setDisable(false);
+					buttonFaltantes.setSelected(true);
+					buttonPresentes.setDisable(false);
+					buttonPresentes.setSelected(false);
+
+				} else {
+					buttonFaltantes.setDisable(false);
+					buttonFaltantes.setSelected(false);
+					buttonPresentes.setDisable(false);
+					buttonPresentes.setSelected(true);
+				}
+
+				buttonFaltantes.setSelected(true);
+				buttonPresentes.setSelected(false);
+				anchor.getChildren().add(imageView);
+				anchor.getChildren().addAll(listNodesRectangles);
+				stackPane.getChildren().add(anchor);
+				scrollPane = new ScrollPane(stackPane);
+				scrollPane.setHvalue(1);
+				scrollPane.setVvalue(0.23);
+				content.getChildren().clear();
+				content.getChildren().add(scrollPane);
+
+			} catch (Exception e) {
+			}
 		} else {
+			refazer = false;
 			try {
 				final String imageURL = item.toURI().toURL().toExternalForm();
 				imageView = new ImageView(new Image(imageURL));
@@ -549,7 +713,7 @@ public class Controller implements Initializable {
 
 						if (coordinates.size() == 0) {
 							coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
-							coord1.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY());
+							coord1.setText(mouseEvent.getX() + VIRGULA + mouseEvent.getY());
 							statusMarcacao.setText(AGUARDANDO_MARCACAO_DE_ALTURA_DE_LINHA);
 							resetMarcacao.setDisable(false);
 							buttonPresentes.setDisable(false);
@@ -559,13 +723,13 @@ public class Controller implements Initializable {
 							y0 = mouseEvent.getY();
 						} else if (coordinates.size() == 1) {
 							coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
-							coord2.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY());
+							coord2.setText(mouseEvent.getX() + VIRGULA + mouseEvent.getY());
 							statusMarcacao.setText(AGUARDANDO_MARCACAO_FINAL);
 							x1 = mouseEvent.getX();
 							y1 = mouseEvent.getY();
 						} else if (coordinates.size() == 2) {
 							coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
-							coord3.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY());
+							coord3.setText(mouseEvent.getX() + VIRGULA + mouseEvent.getY());
 							statusMarcacao.setText(MARCACAO_FINALIZADA);
 							x2 = mouseEvent.getX();
 							y2 = mouseEvent.getY();
@@ -694,14 +858,32 @@ public class Controller implements Initializable {
 				anchor.getChildren().add(imageView);
 				stackPane.getChildren().add(anchor);
 				scrollPane = new ScrollPane(stackPane);
-				// content.getChildren().clear();
+				scrollPane.setHvalue(1);
+				scrollPane.setVvalue(0.20);
 				content.getChildren().add(scrollPane);
 			} catch (MalformedURLException e) {
 				e.printStackTrace();
 			}
-
 		}
+	}
 
+	private List<RetanguloAssinatura> calculaRetangulos(int quantidadeRetangulos, double largura, double altura,
+			double pontoInicialY, double pontoInicialX) {
+		double pontoInicialInc = pontoInicialY;
+
+		List<RetanguloAssinatura> retorno = new ArrayList<RetanguloAssinatura>();
+		RetanguloAssinatura r;
+		for (int i = 1; i <= quantidadeRetangulos; i++) {
+			r = new RetanguloAssinatura();
+			r.setId((int) i);
+			r.setPontoInicialY(pontoInicialInc);
+			r.setPontoInicialX(pontoInicialX);
+			r.setAltura(altura);
+			r.setLargura(largura);
+			pontoInicialInc += altura;
+			retorno.add(r);
+		}
+		return retorno;
 	}
 
 	void markEvent(KeyEvent event) {
