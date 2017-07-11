@@ -17,6 +17,7 @@ import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
@@ -128,6 +129,7 @@ public class Controller implements Initializable {
 	private double y2;
 	private List<RetanguloAssinatura> retangulos;
 	private boolean refazer = false;
+	private ImageView imgZoom;
 
 	/**
 	 * Called automatically by JavaFX when creating the UI.
@@ -339,8 +341,8 @@ public class Controller implements Initializable {
 							+ "no vertice inferior direito do ultimo aluno da lista\n\n Os retangulos de "
 							+ "marcação serão automaticamente gerados\n\nPasso 5 - Selecione o check "
 							+ "correspondente aos 'Presentes' ou 'Faltantes'\nPasso 6 - Tecle 'S' para "
-							+ "salvar a marcação\n\n É direcionado para a próxima imagem, repita esse processo"
-							+ " para as ouras listas.",
+							+ "salvar a marcação\n\nÉ direcionado para a próxima imagem, repita esse processo"
+							+ " para as outras listas.",
 					ButtonType.CLOSE);
 			dialog.setTitle("Sobre");
 
@@ -544,6 +546,7 @@ public class Controller implements Initializable {
 				String[] valores = linhasDoArquivo.split(SEPARADOR_FILE);
 				final String imageURL = item.toURI().toURL().toExternalForm();
 				imageView = new ImageView(new Image(imageURL));
+				imgZoom = new ImageView(new Image(imageURL));
 				StackPane stackPane = new StackPane();
 				AnchorPane anchor = new AnchorPane();
 				x0 = Double.parseDouble(valores[0]);
@@ -608,6 +611,21 @@ public class Controller implements Initializable {
 					@Override
 					public void handle(MouseEvent mouseEvent) {
 						coords.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+						AnchorPane an = (AnchorPane) contentRight.getChildren().get(0);
+						AnchorPane image = (AnchorPane) an.getChildren().get(24);
+						ImageView img = imgZoom;
+						Rectangle2D viewportRect3 = new Rectangle2D(mouseEvent.getX() - 20, mouseEvent.getY() - 20, 40,
+								40);
+						img.setViewport(viewportRect3);
+						img.setSmooth(true);
+						img.setPreserveRatio(false);
+						img.fitWidthProperty().bind(image.widthProperty());
+						img.fitHeightProperty().bind(image.heightProperty());
+						img.opacityProperty().set(0.4);
+						if (image.getChildren().size() > 1) {
+							image.getChildren().remove(1);
+						}
+						image.getChildren().add(img);
 					}
 				});
 
@@ -692,6 +710,7 @@ public class Controller implements Initializable {
 			try {
 				final String imageURL = item.toURI().toURL().toExternalForm();
 				imageView = new ImageView(new Image(imageURL));
+				imgZoom = new ImageView(new Image(imageURL));
 				StackPane stackPane = new StackPane();
 				AnchorPane anchor = new AnchorPane();
 				statusMarcacao.setText(AGUARDANDO_MARCACAO_INICIAL);
@@ -827,9 +846,25 @@ public class Controller implements Initializable {
 				});
 
 				imageView.addEventFilter(MouseEvent.MOUSE_MOVED, new EventHandler<MouseEvent>() {
+
 					@Override
 					public void handle(MouseEvent mouseEvent) {
 						coords.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+						AnchorPane an = (AnchorPane) contentRight.getChildren().get(0);
+						AnchorPane image = (AnchorPane) an.getChildren().get(24);
+						ImageView img = imgZoom;
+						Rectangle2D viewportRect3 = new Rectangle2D(mouseEvent.getX() - 20, mouseEvent.getY() - 20, 40,
+								40);
+						img.setViewport(viewportRect3);
+						img.setSmooth(true);
+						img.setPreserveRatio(false);
+						img.fitWidthProperty().bind(image.widthProperty());
+						img.fitHeightProperty().bind(image.heightProperty());
+						img.opacityProperty().set(0.4);
+						if (image.getChildren().size() > 1) {
+							image.getChildren().remove(1);
+						}
+						image.getChildren().add(img);
 					}
 				});
 

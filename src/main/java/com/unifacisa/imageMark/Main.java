@@ -1,10 +1,5 @@
 package com.unifacisa.imageMark;
 
-import java.awt.Dimension;
-import java.awt.GraphicsDevice;
-import java.awt.GraphicsEnvironment;
-import java.awt.Toolkit;
-
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -59,7 +54,6 @@ public class Main extends Application {
 		primaryStage.setMinWidth(1220);
 		primaryStage.setMinHeight(700);
 		primaryStage.setMaximized(true);
-		// primaryStage.setFullScreen(true);
 		primaryStage.show();
 	}
 
