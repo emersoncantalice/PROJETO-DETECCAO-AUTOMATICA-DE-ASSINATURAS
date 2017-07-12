@@ -534,6 +534,43 @@ public class Controller implements Initializable {
 
 		String fileNameFull = itemCurrent.getItem().getName();
 		String fileNameOutExtension = fileNameFull.substring(0, fileNameFull.lastIndexOf(PONTO));
+		String imageURL = null;
+		try {
+			imageURL = item.toURI().toURL().toExternalForm();
+		} catch (MalformedURLException e1) {
+			e1.printStackTrace();
+			return;
+		}
+		imageView = new ImageView(new Image(imageURL));
+		//TODO: Criar método de rotação. 
+//		imageView.setRotate(-0.5);
+		imgZoom = new ImageView(new Image(imageURL));
+		StackPane stackPane = new StackPane();
+		AnchorPane anchor = new AnchorPane();
+		nameImage.setText(item.getName());
+
+		imageView.addEventFilter(MouseEvent.MOUSE_MOVED, new EventHandler<MouseEvent>() {
+
+			@Override
+			public void handle(MouseEvent mouseEvent) {
+				coords.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+				AnchorPane an = (AnchorPane) contentRight.getChildren().get(0);
+				AnchorPane image = (AnchorPane) an.getChildren().get(24);
+				ImageView img = imgZoom;
+				Rectangle2D viewportRect3 = new Rectangle2D(mouseEvent.getX() - 20, mouseEvent.getY() - 20, 40, 40);
+				img.setViewport(viewportRect3);
+				img.setSmooth(true);
+				img.setPreserveRatio(false);
+				img.fitWidthProperty().bind(image.widthProperty());
+				img.fitHeightProperty().bind(image.heightProperty());
+				img.opacityProperty().set(0.4);
+				if (image.getChildren().size() > 1) {
+					image.getChildren().remove(1);
+				}
+				image.getChildren().add(img);
+			}
+		});
+
 		if (new File(itemCurrent.getItem().getParentFile() + SEPARADOR + fileNameOutExtension + TXT_EXTENSION).exists()
 				&& !refazer) {
 			refazer = false;
@@ -544,22 +581,16 @@ public class Controller implements Initializable {
 				String linhasDoArquivo = new String();
 				linhasDoArquivo = leitor.nextLine();
 				String[] valores = linhasDoArquivo.split(SEPARADOR_FILE);
-				final String imageURL = item.toURI().toURL().toExternalForm();
-				imageView = new ImageView(new Image(imageURL));
-				imgZoom = new ImageView(new Image(imageURL));
-				StackPane stackPane = new StackPane();
-				AnchorPane anchor = new AnchorPane();
+
 				x0 = Double.parseDouble(valores[0]);
 				y0 = Double.parseDouble(valores[1]);
 				x1 = Double.parseDouble(valores[2]);
 				y1 = Double.parseDouble(valores[3]);
 				x2 = Double.parseDouble(valores[4]);
 				y2 = Double.parseDouble(valores[5]);
-				// statusMarcacao.setText(AGUARDANDO_MARCACAO_INICIAL);
 				coord1.setText(valores[0] + VIRGULA + valores[1]);
 				coord2.setText(valores[2] + VIRGULA + valores[3]);
 				coord3.setText(valores[4] + VIRGULA + valores[5]);
-				nameImage.setText(item.getName());
 				resetMarcacao.setDisable(false);
 
 				coordinates = new ArrayList<String>();
@@ -568,7 +599,7 @@ public class Controller implements Initializable {
 				coordinates.add(coord3.getText());
 				statusMarcacao.setText(MARCACAO_FINALIZADA);
 
-				int quantidadeRetangulos = (int) Math.round((((y2 - 2) - (y0 - 2)) / ((y1 - 2) - (y0 - 2))));
+				int quantidadeRetangulos = (int) Math.round(((y2 - y0) / (y1 - y0)));
 				System.out.println(
 						"Quantidade de retangulos = " + quantidadeRetangulos + " - Real = " + ((y2 - y0) / (y1 - y0)));
 
@@ -604,28 +635,6 @@ public class Controller implements Initializable {
 							renderImage(item);
 						} else {
 						}
-					}
-				});
-
-				imageView.addEventFilter(MouseEvent.MOUSE_MOVED, new EventHandler<MouseEvent>() {
-					@Override
-					public void handle(MouseEvent mouseEvent) {
-						coords.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
-						AnchorPane an = (AnchorPane) contentRight.getChildren().get(0);
-						AnchorPane image = (AnchorPane) an.getChildren().get(24);
-						ImageView img = imgZoom;
-						Rectangle2D viewportRect3 = new Rectangle2D(mouseEvent.getX() - 20, mouseEvent.getY() - 20, 40,
-								40);
-						img.setViewport(viewportRect3);
-						img.setSmooth(true);
-						img.setPreserveRatio(false);
-						img.fitWidthProperty().bind(image.widthProperty());
-						img.fitHeightProperty().bind(image.heightProperty());
-						img.opacityProperty().set(0.4);
-						if (image.getChildren().size() > 1) {
-							image.getChildren().remove(1);
-						}
-						image.getChildren().add(img);
 					}
 				});
 
@@ -707,202 +716,150 @@ public class Controller implements Initializable {
 			}
 		} else {
 			refazer = false;
-			try {
-				final String imageURL = item.toURI().toURL().toExternalForm();
-				imageView = new ImageView(new Image(imageURL));
-				imgZoom = new ImageView(new Image(imageURL));
-				StackPane stackPane = new StackPane();
-				AnchorPane anchor = new AnchorPane();
-				statusMarcacao.setText(AGUARDANDO_MARCACAO_INICIAL);
-				coord1.setText(ZERO_STRING);
-				coord2.setText(ZERO_STRING);
-				coord3.setText(ZERO_STRING);
-				nameImage.setText(item.getName());
-				resetMarcacao.setDisable(true);
-				buttonPresentes.setDisable(true);
-				buttonFaltantes.setDisable(true);
-				coordinates = new ArrayList<String>();
+			statusMarcacao.setText(AGUARDANDO_MARCACAO_INICIAL);
+			coord1.setText(ZERO_STRING);
+			coord2.setText(ZERO_STRING);
+			coord3.setText(ZERO_STRING);
+			nameImage.setText(item.getName());
+			resetMarcacao.setDisable(true);
+			buttonPresentes.setDisable(true);
+			buttonFaltantes.setDisable(true);
+			coordinates = new ArrayList<String>();
 
-				imageView.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+			imageView.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
 
-					private List<RetanguloAssinatura> retangulos;
+				private List<RetanguloAssinatura> retangulos;
 
-					@Override
-					public void handle(MouseEvent mouseEvent) {
+				@Override
+				public void handle(MouseEvent mouseEvent) {
 
-						if (coordinates.size() == 0) {
-							coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
-							coord1.setText(mouseEvent.getX() + VIRGULA + mouseEvent.getY());
-							statusMarcacao.setText(AGUARDANDO_MARCACAO_DE_ALTURA_DE_LINHA);
-							resetMarcacao.setDisable(false);
-							buttonPresentes.setDisable(false);
-							buttonFaltantes.setDisable(false);
-							buttonFaltantes.setSelected(true);
-							x0 = mouseEvent.getX();
-							y0 = mouseEvent.getY();
-						} else if (coordinates.size() == 1) {
-							coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
-							coord2.setText(mouseEvent.getX() + VIRGULA + mouseEvent.getY());
-							statusMarcacao.setText(AGUARDANDO_MARCACAO_FINAL);
-							x1 = mouseEvent.getX();
-							y1 = mouseEvent.getY();
-						} else if (coordinates.size() == 2) {
-							coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
-							coord3.setText(mouseEvent.getX() + VIRGULA + mouseEvent.getY());
-							statusMarcacao.setText(MARCACAO_FINALIZADA);
-							x2 = mouseEvent.getX();
-							y2 = mouseEvent.getY();
+					if (coordinates.size() == 0) {
+						coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+						coord1.setText(mouseEvent.getX() + VIRGULA + mouseEvent.getY());
+						statusMarcacao.setText(AGUARDANDO_MARCACAO_DE_ALTURA_DE_LINHA);
+						resetMarcacao.setDisable(false);
+						buttonPresentes.setDisable(false);
+						buttonFaltantes.setDisable(false);
+						buttonFaltantes.setSelected(true);
+						x0 = mouseEvent.getX();
+						y0 = mouseEvent.getY();
+					} else if (coordinates.size() == 1) {
+						coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+						coord2.setText(mouseEvent.getX() + VIRGULA + mouseEvent.getY());
+						statusMarcacao.setText(AGUARDANDO_MARCACAO_FINAL);
+						x1 = mouseEvent.getX();
+						y1 = mouseEvent.getY();
+					} else if (coordinates.size() == 2) {
+						coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+						coord3.setText(mouseEvent.getX() + VIRGULA + mouseEvent.getY());
+						statusMarcacao.setText(MARCACAO_FINALIZADA);
+						x2 = mouseEvent.getX();
+						y2 = mouseEvent.getY();
 
-							anchor.getChildren().clear();
-							anchor.setLayoutX(imageView.getFitHeight());
-							anchor.setLayoutY(imageView.getFitWidth());
-							anchor.opacityProperty().set(1);
+						anchor.getChildren().clear();
+						anchor.setLayoutX(imageView.getFitHeight());
+						anchor.setLayoutY(imageView.getFitWidth());
+						anchor.opacityProperty().set(1);
 
-							stackPane.getChildren().clear();
-							stackPane.setLayoutX(imageView.getFitHeight());
-							stackPane.setLayoutY(imageView.getFitWidth());
-							stackPane.opacityProperty().set(1);
-							content.setFocusTraversable(true);
+						stackPane.getChildren().clear();
+						stackPane.setLayoutX(imageView.getFitHeight());
+						stackPane.setLayoutY(imageView.getFitWidth());
+						stackPane.opacityProperty().set(1);
+						content.setFocusTraversable(true);
 
-							int quantidadeRetangulos = (int) Math
-									.round((((y2 - 2) - (y0 - 2)) / ((y1 - 2) - (y0 - 2))));
-							System.out.println("Quantidade de retangulos = " + quantidadeRetangulos + " - Real = "
-									+ ((y2 - y0) / (y1 - y0)));
+						int quantidadeRetangulos = (int) Math.round((((y2 - 2) - (y0 - 2)) / ((y1 - 2) - (y0 - 2))));
+						System.out.println("Quantidade de retangulos = " + quantidadeRetangulos + " - Real = "
+								+ ((y2 - y0) / (y1 - y0)));
 
-							double pontoInicialX = x0;
-							double pontoInicialY = y0;
-							double largura = x2 - x1;
-							double altura = y1 - y0;
-							retangulos = calculaRetangulos(quantidadeRetangulos, largura, altura, pontoInicialY,
-									pontoInicialX);
+						double pontoInicialX = x0;
+						double pontoInicialY = y0;
+						double largura = x2 - x1;
+						double altura = y1 - y0;
+						retangulos = calculaRetangulos(quantidadeRetangulos, largura, altura, pontoInicialY,
+								pontoInicialX);
 
-							Rectangle rectangle = null;
-							listNodesRectangles = new ArrayList<Node>();
-							for (RetanguloAssinatura retangulo : retangulos) {
-								rectangle = new Rectangle(retangulo.getPontoInicialX(), retangulo.getPontoInicialY(),
-										retangulo.getLargura(), retangulo.getAltura());
-								rectangle.setStroke(Color.DARKBLUE);
-								rectangle.setStrokeWidth(5);
-								rectangle.setStrokeType(StrokeType.INSIDE);
-								rectangle.setFill(Color.STEELBLUE);
-								rectangle.opacityProperty().set(0.4);
-								rectangle.setCursor(Cursor.HAND);
-								rectangle.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
-									@Override
-									public void handle(MouseEvent mouseEvent) {
-										Rectangle rectangleSelect = (Rectangle) mouseEvent.getSource();
-										if (rectangleSelect.getStroke().equals(Color.DARKBLUE)) {
-											if (buttonFaltantes.isSelected()) {
-												rectangleSelect.setStroke(Color.DARKRED);
-												rectangleSelect.setFill(Color.RED);
-											} else {
-												rectangleSelect.setFill(Color.GREENYELLOW);
-												rectangleSelect.setStroke(Color.DARKGREEN);
-											}
+						Rectangle rectangle = null;
+						listNodesRectangles = new ArrayList<Node>();
+						for (RetanguloAssinatura retangulo : retangulos) {
+							rectangle = new Rectangle(retangulo.getPontoInicialX(), retangulo.getPontoInicialY(),
+									retangulo.getLargura(), retangulo.getAltura());
+							rectangle.setStroke(Color.DARKBLUE);
+							rectangle.setStrokeWidth(5);
+							rectangle.setStrokeType(StrokeType.INSIDE);
+							rectangle.setFill(Color.STEELBLUE);
+							rectangle.opacityProperty().set(0.4);
+							rectangle.setCursor(Cursor.HAND);
+							rectangle.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+								@Override
+								public void handle(MouseEvent mouseEvent) {
+									Rectangle rectangleSelect = (Rectangle) mouseEvent.getSource();
+									if (rectangleSelect.getStroke().equals(Color.DARKBLUE)) {
+										if (buttonFaltantes.isSelected()) {
+											rectangleSelect.setStroke(Color.DARKRED);
+											rectangleSelect.setFill(Color.RED);
 										} else {
-											rectangleSelect.setStroke(Color.DARKBLUE);
-											rectangleSelect.setFill(Color.STEELBLUE);
+											rectangleSelect.setFill(Color.GREENYELLOW);
+											rectangleSelect.setStroke(Color.DARKGREEN);
 										}
-										System.out.println("Clique no retangulo " + rectangleSelect);
+									} else {
+										rectangleSelect.setStroke(Color.DARKBLUE);
+										rectangleSelect.setFill(Color.STEELBLUE);
 									}
-								});
-								listNodesRectangles.add(rectangle);
-							}
-
-							buttonFaltantes.setSelected(true);
-							buttonPresentes.setSelected(false);
-							anchor.getChildren().add(imageView);
-							anchor.getChildren().addAll(listNodesRectangles);
-							stackPane.getChildren().add(anchor);
-							ScrollPane sp = (ScrollPane) content.getChildren().get(0);
-							content.getChildren().clear();
-							sp.setContent(stackPane);
-							content.getChildren().add(sp);
-						} else {
-							System.out.println(MARCACAO_PARA_ESSA_IMAGEM_FINALIZADA);
+									System.out.println("Clique no retangulo " + rectangleSelect);
+								}
+							});
+							listNodesRectangles.add(rectangle);
 						}
 
+						buttonFaltantes.setSelected(true);
+						buttonPresentes.setSelected(false);
+						anchor.getChildren().add(imageView);
+						anchor.getChildren().addAll(listNodesRectangles);
+						stackPane.getChildren().add(anchor);
+						ScrollPane sp = (ScrollPane) content.getChildren().get(0);
+						content.getChildren().clear();
+						sp.setContent(stackPane);
+						content.getChildren().add(sp);
+					} else {
+						System.out.println(MARCACAO_PARA_ESSA_IMAGEM_FINALIZADA);
 					}
 
-					private List<RetanguloAssinatura> calculaRetangulos(int quantidadeRetangulos, double largura,
-							double altura, double pontoInicialY, double pontoInicialX) {
+				}
 
-						double pontoInicialInc = pontoInicialY;
+			});
 
-						List<RetanguloAssinatura> retorno = new ArrayList<RetanguloAssinatura>();
-						RetanguloAssinatura r;
-						for (int i = 1; i <= quantidadeRetangulos; i++) {
-							r = new RetanguloAssinatura();
-							r.setId((int) i);
-							r.setPontoInicialY(pontoInicialInc);
-							r.setPontoInicialX(pontoInicialX);
-							r.setAltura(altura);
-							r.setLargura(largura);
-							pontoInicialInc += altura;
-							retorno.add(r);
-						}
-						return retorno;
-					}
-				});
+			imageView.setPreserveRatio(true);
+			imageView.fitWidthProperty().bind(content.widthProperty());
+			imageView.fitHeightProperty().bind(content.heightProperty());
+			imageView.setCursor(Cursor.CROSSHAIR);
+			imageView.fitWidthProperty().unbind();
+			imageView.fitHeightProperty().unbind();
+			imageView.setViewport(null);
+			final double imageWidth = imageView.getImage().getWidth() * 1;
+			final double imageHeight = imageView.getImage().getHeight() * 1;
+			imageView.setFitWidth(imageWidth);
+			imageView.setFitHeight(imageHeight);
 
-				imageView.addEventFilter(MouseEvent.MOUSE_MOVED, new EventHandler<MouseEvent>() {
+			content.getChildren().clear();
 
-					@Override
-					public void handle(MouseEvent mouseEvent) {
-						coords.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
-						AnchorPane an = (AnchorPane) contentRight.getChildren().get(0);
-						AnchorPane image = (AnchorPane) an.getChildren().get(24);
-						ImageView img = imgZoom;
-						Rectangle2D viewportRect3 = new Rectangle2D(mouseEvent.getX() - 20, mouseEvent.getY() - 20, 40,
-								40);
-						img.setViewport(viewportRect3);
-						img.setSmooth(true);
-						img.setPreserveRatio(false);
-						img.fitWidthProperty().bind(image.widthProperty());
-						img.fitHeightProperty().bind(image.heightProperty());
-						img.opacityProperty().set(0.4);
-						if (image.getChildren().size() > 1) {
-							image.getChildren().remove(1);
-						}
-						image.getChildren().add(img);
-					}
-				});
+			anchor.setLayoutX(imageView.getFitHeight());
+			anchor.setLayoutY(imageView.getFitWidth());
+			anchor.opacityProperty().set(1);
 
-				imageView.setPreserveRatio(true);
-				imageView.fitWidthProperty().bind(content.widthProperty());
-				imageView.fitHeightProperty().bind(content.heightProperty());
-				imageView.setCursor(Cursor.CROSSHAIR);
-				imageView.fitWidthProperty().unbind();
-				imageView.fitHeightProperty().unbind();
-				imageView.setViewport(null);
-				final double imageWidth = imageView.getImage().getWidth() * 1;
-				final double imageHeight = imageView.getImage().getHeight() * 1;
-				imageView.setFitWidth(imageWidth);
-				imageView.setFitHeight(imageHeight);
+			stackPane.setLayoutX(imageView.getFitHeight());
+			stackPane.setLayoutY(imageView.getFitWidth());
+			stackPane.opacityProperty().set(1);
 
-				content.getChildren().clear();
-
-				anchor.setLayoutX(imageView.getFitHeight());
-				anchor.setLayoutY(imageView.getFitWidth());
-				anchor.opacityProperty().set(1);
-
-				stackPane.setLayoutX(imageView.getFitHeight());
-				stackPane.setLayoutY(imageView.getFitWidth());
-				stackPane.opacityProperty().set(1);
-
-				anchor.getChildren().add(imageView);
-				stackPane.getChildren().add(anchor);
-				scrollPane = new ScrollPane(stackPane);
-				scrollPane.setHvalue(1);
-				scrollPane.setVvalue(0.20);
-				content.getChildren().add(scrollPane);
-			} catch (MalformedURLException e) {
-				e.printStackTrace();
-			}
+			anchor.getChildren().add(imageView);
+			stackPane.getChildren().add(anchor);
+			scrollPane = new ScrollPane(stackPane);
+			scrollPane.setHvalue(1);
+			scrollPane.setVvalue(0.20);
+			content.getChildren().add(scrollPane);
 		}
 	}
 
-	private List<RetanguloAssinatura> calculaRetangulos(int quantidadeRetangulos, double largura, double altura,
+	public List<RetanguloAssinatura> calculaRetangulos(int quantidadeRetangulos, double largura, double altura,
 			double pontoInicialY, double pontoInicialX) {
 		double pontoInicialInc = pontoInicialY;
 
