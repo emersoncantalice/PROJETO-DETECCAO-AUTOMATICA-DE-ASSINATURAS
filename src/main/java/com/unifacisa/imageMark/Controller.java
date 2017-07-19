@@ -1,5 +1,7 @@
 package com.unifacisa.imageMark;
 
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -13,7 +15,10 @@ import java.util.ResourceBundle;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 
+import javax.imageio.ImageIO;
+
 import javafx.application.Platform;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -48,6 +53,9 @@ import javafx.stage.Stage;
  */
 public class Controller implements Initializable {
 
+	private static final String SELECIONE_A_ALTURA_DIREITA_MAXIMA_NA_TABELA = "Selecione a altura direita MÁXIMA na tabela";
+	private static final String SELECIONE_A_ALTURA_DIREITA_MINIMA_NA_TABELA = "Selecione a altura direita MÍNIMA na tabela";
+	private static final double CONSTANTE_DE_CRESCIMENTO_DE_ROTACAO = -0.0478260869565217;
 	private static final String VAZIO = "";
 	private static final String TXT_EXTENSION = ".txt";
 	private static final String PONTO = ".";
@@ -65,6 +73,7 @@ public class Controller implements Initializable {
 	private static final String AGUARDANDO_MARCACAO_FINAL = "Aguardando marcação final";
 	private static final String MARCACAO_FINALIZADA = "Marcação finalizada!\nTecle 'S' para salvar.";
 	private static final String SEPARADOR = System.getProperty("file.separator");
+	protected static final String IMAGEM_ROTACIONADA_AGUARDANDO_MARCACAO = "Imagem rotacionada, aguardando marcação";
 
 	@FXML
 	private MenuItem fileOpen;
@@ -88,6 +97,8 @@ public class Controller implements Initializable {
 	private AnchorPane imageZoom;
 	@FXML
 	private Button resetMarcacao;
+	@FXML
+	private Button rotate;
 	@FXML
 	private Button outFocus;
 	@FXML
@@ -119,6 +130,7 @@ public class Controller implements Initializable {
 	private ImageView imageView;
 	private ScrollPane scrollPane;
 	private ArrayList<String> coordinates;
+	private ArrayList<String> coordinatesRotacionar;
 	private List<Node> listNodesRectangles;
 	private GalleryItem itemCurrent;
 	private double x0;
@@ -129,6 +141,7 @@ public class Controller implements Initializable {
 	private double y2;
 	private List<RetanguloAssinatura> retangulos;
 	private boolean refazer = false;
+	private boolean rotacionar = false;
 	private ImageView imgZoom;
 
 	/**
@@ -174,26 +187,10 @@ public class Controller implements Initializable {
 				renderNext();
 			} else if (event.getCode().equals(KeyCode.LEFT)) {
 				renderPrevious();
-			}
-		}
-	}
-
-	void save(KeyEvent event) {
-		if (!gallery.isEmpty()) {
-			if (event.getCode().equals(KeyCode.S)) {
+			} else if (event.getCode().equals(KeyCode.S)) {
 				if (statusMarcacao.getText().equals(MARCACAO_FINALIZADA)) {
 					salvarLog(coordinates, listNodesRectangles);
-					ScrollPane sp = (ScrollPane) content.getChildren().get(0);
-					StackPane st = (StackPane) sp.getContent();
-					AnchorPane ap = (AnchorPane) st.getChildren().get(0);
-					if (listNodesRectangles != null) {
-						ap.getChildren().removeAll(listNodesRectangles);
-					}
-					coordinates = new ArrayList<String>();
-					statusMarcacao.setText(MARCACAO_REINICIADA_AGUARDANDO_MARCACAO_INICIAL);
-					coord1.setText(ZERO_STRING);
-					coord2.setText(ZERO_STRING);
-					coord3.setText(ZERO_STRING);
+					reset();
 				} else {
 					final Alert dialog = new Alert(Alert.AlertType.NONE,
 							"Marcação ainda não foi finalizada.\n\nPara salvar é necessario chegar ao menos no passo 4 da marcação.\nQuaquer dúvida clique em 'Ajuda -> Tutorial', no menu superior. ",
@@ -373,17 +370,13 @@ public class Controller implements Initializable {
 		});
 
 		resetMarcacao.setOnAction(ActionEvent -> {
-			ScrollPane sp = (ScrollPane) content.getChildren().get(0);
-			StackPane st = (StackPane) sp.getContent();
-			AnchorPane ap = (AnchorPane) st.getChildren().get(0);
-			if (listNodesRectangles != null) {
-				ap.getChildren().removeAll(listNodesRectangles);
-			}
-			coordinates = new ArrayList<String>();
-			statusMarcacao.setText(MARCACAO_REINICIADA_AGUARDANDO_MARCACAO_INICIAL);
-			coord1.setText(ZERO_STRING);
-			coord2.setText(ZERO_STRING);
-			coord3.setText(ZERO_STRING);
+			reset();
+		});
+
+		rotate.setOnAction(ActionEvent -> {
+			reset();
+			statusMarcacao.setText(SELECIONE_A_ALTURA_DIREITA_MAXIMA_NA_TABELA);
+			rotacionar = true;
 		});
 
 		outFocus.setOnAction(ActionEvent -> {
@@ -392,6 +385,22 @@ public class Controller implements Initializable {
 		buttonFaltantes.setDisable(true);
 		buttonPresentes.setDisable(true);
 		resetMarcacao.setDisable(true);
+	}
+
+	private void reset() {
+		ScrollPane sp = (ScrollPane) content.getChildren().get(0);
+		StackPane st = (StackPane) sp.getContent();
+		AnchorPane ap = (AnchorPane) st.getChildren().get(0);
+		if (listNodesRectangles != null) {
+			ap.getChildren().removeAll(listNodesRectangles);
+		}
+		coordinates = new ArrayList<String>();
+		coordinatesRotacionar = new ArrayList<String>();
+		statusMarcacao.setText(MARCACAO_REINICIADA_AGUARDANDO_MARCACAO_INICIAL);
+		coord1.setText(ZERO_STRING);
+		coord2.setText(ZERO_STRING);
+		coord3.setText(ZERO_STRING);
+		rotacionar = false;
 	}
 
 	/**
@@ -511,8 +520,6 @@ public class Controller implements Initializable {
 		if (content.getChildren().size() > 0 && content.getChildren().get(0) instanceof ImageView) {
 
 		} else if (content.getChildren().size() > 0 && content.getChildren().get(0) instanceof MediaControl) {
-			// If the currently rendered item is a video, stop its player before
-			// proceeding
 			final MediaControl previousMediaControl = (MediaControl) content.getChildren().get(0);
 			previousMediaControl.getMediaPlayer().dispose();
 		}
@@ -542,8 +549,6 @@ public class Controller implements Initializable {
 			return;
 		}
 		imageView = new ImageView(new Image(imageURL));
-		//TODO: Criar método de rotação. 
-//		imageView.setRotate(-0.5);
 		imgZoom = new ImageView(new Image(imageURL));
 		StackPane stackPane = new StackPane();
 		AnchorPane anchor = new AnchorPane();
@@ -553,6 +558,10 @@ public class Controller implements Initializable {
 
 			@Override
 			public void handle(MouseEvent mouseEvent) {
+				drawZoom(mouseEvent);
+			}
+
+			private void drawZoom(MouseEvent mouseEvent) {
 				coords.setText((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
 				AnchorPane an = (AnchorPane) contentRight.getChildren().get(0);
 				AnchorPane image = (AnchorPane) an.getChildren().get(24);
@@ -594,6 +603,7 @@ public class Controller implements Initializable {
 				resetMarcacao.setDisable(false);
 
 				coordinates = new ArrayList<String>();
+				coordinatesRotacionar = new ArrayList<String>();
 				coordinates.add(coord1.getText());
 				coordinates.add(coord2.getText());
 				coordinates.add(coord3.getText());
@@ -621,17 +631,7 @@ public class Controller implements Initializable {
 
 						if (dialog.getResult().equals(ButtonType.YES)) {
 							refazer = true;
-							ScrollPane sp = (ScrollPane) content.getChildren().get(0);
-							StackPane st = (StackPane) sp.getContent();
-							AnchorPane ap = (AnchorPane) st.getChildren().get(0);
-							if (listNodesRectangles != null) {
-								ap.getChildren().removeAll(listNodesRectangles);
-							}
-							coordinates = new ArrayList<String>();
-							statusMarcacao.setText(MARCACAO_REINICIADA_AGUARDANDO_MARCACAO_INICIAL);
-							coord1.setText(ZERO_STRING);
-							coord2.setText(ZERO_STRING);
-							coord3.setText(ZERO_STRING);
+							reset();
 							renderImage(item);
 						} else {
 						}
@@ -715,6 +715,7 @@ public class Controller implements Initializable {
 			} catch (Exception e) {
 			}
 		} else {
+			rotate.setDisable(false);
 			refazer = false;
 			statusMarcacao.setText(AGUARDANDO_MARCACAO_INICIAL);
 			coord1.setText(ZERO_STRING);
@@ -725,6 +726,7 @@ public class Controller implements Initializable {
 			buttonPresentes.setDisable(true);
 			buttonFaltantes.setDisable(true);
 			coordinates = new ArrayList<String>();
+			coordinatesRotacionar = new ArrayList<String>();
 
 			imageView.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
 
@@ -732,97 +734,140 @@ public class Controller implements Initializable {
 
 				@Override
 				public void handle(MouseEvent mouseEvent) {
-
-					if (coordinates.size() == 0) {
-						coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
-						coord1.setText(mouseEvent.getX() + VIRGULA + mouseEvent.getY());
-						statusMarcacao.setText(AGUARDANDO_MARCACAO_DE_ALTURA_DE_LINHA);
+					if (rotacionar) {
 						resetMarcacao.setDisable(false);
-						buttonPresentes.setDisable(false);
-						buttonFaltantes.setDisable(false);
-						buttonFaltantes.setSelected(true);
-						x0 = mouseEvent.getX();
-						y0 = mouseEvent.getY();
-					} else if (coordinates.size() == 1) {
-						coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
-						coord2.setText(mouseEvent.getX() + VIRGULA + mouseEvent.getY());
-						statusMarcacao.setText(AGUARDANDO_MARCACAO_FINAL);
-						x1 = mouseEvent.getX();
-						y1 = mouseEvent.getY();
-					} else if (coordinates.size() == 2) {
-						coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
-						coord3.setText(mouseEvent.getX() + VIRGULA + mouseEvent.getY());
-						statusMarcacao.setText(MARCACAO_FINALIZADA);
-						x2 = mouseEvent.getX();
-						y2 = mouseEvent.getY();
+						if (coordinatesRotacionar.size() == 0) {
+							coordinatesRotacionar.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+							statusMarcacao.setText(SELECIONE_A_ALTURA_DIREITA_MINIMA_NA_TABELA);
+							x0 = mouseEvent.getX();
+						} else {
+							coordinatesRotacionar.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+							statusMarcacao.setText(IMAGEM_ROTACIONADA_AGUARDANDO_MARCACAO);
+							x1 = mouseEvent.getX();
 
-						anchor.getChildren().clear();
-						anchor.setLayoutX(imageView.getFitHeight());
-						anchor.setLayoutY(imageView.getFitWidth());
-						anchor.opacityProperty().set(1);
+							try {
+								BufferedImage image = SwingFXUtils.fromFXImage(imageView.getImage(), null);
+								BufferedImage imageRGB = new BufferedImage(image.getWidth(), image.getHeight(),
+										BufferedImage.OPAQUE);
+								Graphics2D graphics = imageRGB.createGraphics();
+								graphics.rotate(Math.toRadians(calculaRotacao(x0 - x1)));
+								graphics.drawImage(image, 0, 0, null);
+								ImageIO.write(imageRGB, "jpg", new File(itemCurrent.getItem().getParentFile()
+										+ SEPARADOR + fileNameOutExtension + "rotate.jpg"));
+								File imagemRotacionada = new File(itemCurrent.getItem().getParentFile() + SEPARADOR
+										+ fileNameOutExtension + "rotate.jpg");
+								graphics.dispose();
+								loadFile(imagemRotacionada);
+							} catch (IOException e1) {
+								e1.printStackTrace();
+							} finally {
+								rotacionar = false;
+							}
 
-						stackPane.getChildren().clear();
-						stackPane.setLayoutX(imageView.getFitHeight());
-						stackPane.setLayoutY(imageView.getFitWidth());
-						stackPane.opacityProperty().set(1);
-						content.setFocusTraversable(true);
+						}
+					} else {
 
-						int quantidadeRetangulos = (int) Math.round((((y2 - 2) - (y0 - 2)) / ((y1 - 2) - (y0 - 2))));
-						System.out.println("Quantidade de retangulos = " + quantidadeRetangulos + " - Real = "
-								+ ((y2 - y0) / (y1 - y0)));
+						if (coordinates.size() == 0) {
+							coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+							coord1.setText(mouseEvent.getX() + VIRGULA + mouseEvent.getY());
+							statusMarcacao.setText(AGUARDANDO_MARCACAO_DE_ALTURA_DE_LINHA);
+							resetMarcacao.setDisable(false);
+							buttonPresentes.setDisable(false);
+							buttonFaltantes.setDisable(false);
+							buttonFaltantes.setSelected(true);
+							x0 = mouseEvent.getX();
+							y0 = mouseEvent.getY();
+						} else if (coordinates.size() == 1) {
+							coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+							coord2.setText(mouseEvent.getX() + VIRGULA + mouseEvent.getY());
+							statusMarcacao.setText(AGUARDANDO_MARCACAO_FINAL);
+							x1 = mouseEvent.getX();
+							y1 = mouseEvent.getY();
+						} else if (coordinates.size() == 2) {
+							coordinates.add((int) mouseEvent.getX() + VIRGULA + (int) mouseEvent.getY() + PX);
+							coord3.setText(mouseEvent.getX() + VIRGULA + mouseEvent.getY());
+							statusMarcacao.setText(MARCACAO_FINALIZADA);
+							x2 = mouseEvent.getX();
+							y2 = mouseEvent.getY();
 
-						double pontoInicialX = x0;
-						double pontoInicialY = y0;
-						double largura = x2 - x1;
-						double altura = y1 - y0;
-						retangulos = calculaRetangulos(quantidadeRetangulos, largura, altura, pontoInicialY,
-								pontoInicialX);
+							anchor.getChildren().clear();
+							anchor.setLayoutX(imageView.getFitHeight());
+							anchor.setLayoutY(imageView.getFitWidth());
+							anchor.opacityProperty().set(1);
 
-						Rectangle rectangle = null;
-						listNodesRectangles = new ArrayList<Node>();
-						for (RetanguloAssinatura retangulo : retangulos) {
-							rectangle = new Rectangle(retangulo.getPontoInicialX(), retangulo.getPontoInicialY(),
-									retangulo.getLargura(), retangulo.getAltura());
-							rectangle.setStroke(Color.DARKBLUE);
-							rectangle.setStrokeWidth(5);
-							rectangle.setStrokeType(StrokeType.INSIDE);
-							rectangle.setFill(Color.STEELBLUE);
-							rectangle.opacityProperty().set(0.4);
-							rectangle.setCursor(Cursor.HAND);
-							rectangle.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
-								@Override
-								public void handle(MouseEvent mouseEvent) {
-									Rectangle rectangleSelect = (Rectangle) mouseEvent.getSource();
-									if (rectangleSelect.getStroke().equals(Color.DARKBLUE)) {
-										if (buttonFaltantes.isSelected()) {
-											rectangleSelect.setStroke(Color.DARKRED);
-											rectangleSelect.setFill(Color.RED);
+							stackPane.getChildren().clear();
+							stackPane.setLayoutX(imageView.getFitHeight());
+							stackPane.setLayoutY(imageView.getFitWidth());
+							stackPane.opacityProperty().set(1);
+							content.setFocusTraversable(true);
+
+							int quantidadeRetangulos = (int) Math
+									.round((((y2 - 2) - (y0 - 2)) / ((y1 - 2) - (y0 - 2))));
+							System.out.println("Quantidade de retangulos = " + quantidadeRetangulos + " - Real = "
+									+ ((y2 - y0) / (y1 - y0)));
+
+							double pontoInicialX = x0;
+							double pontoInicialY = y0;
+							double largura = x2 - x1;
+							double altura = y1 - y0;
+							retangulos = calculaRetangulos(quantidadeRetangulos, largura, altura, pontoInicialY,
+									pontoInicialX);
+
+							Rectangle rectangle = null;
+							listNodesRectangles = new ArrayList<Node>();
+							for (RetanguloAssinatura retangulo : retangulos) {
+								rectangle = new Rectangle(retangulo.getPontoInicialX(), retangulo.getPontoInicialY(),
+										retangulo.getLargura(), retangulo.getAltura());
+								rectangle.setStroke(Color.DARKBLUE);
+								rectangle.setStrokeWidth(5);
+								rectangle.setStrokeType(StrokeType.INSIDE);
+								rectangle.setFill(Color.STEELBLUE);
+								rectangle.opacityProperty().set(0.4);
+								rectangle.setCursor(Cursor.HAND);
+								rectangle.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+									@Override
+									public void handle(MouseEvent mouseEvent) {
+										Rectangle rectangleSelect = (Rectangle) mouseEvent.getSource();
+										if (rectangleSelect.getStroke().equals(Color.DARKBLUE)) {
+											if (buttonFaltantes.isSelected()) {
+												rectangleSelect.setStroke(Color.DARKRED);
+												rectangleSelect.setFill(Color.RED);
+											} else {
+												rectangleSelect.setFill(Color.GREENYELLOW);
+												rectangleSelect.setStroke(Color.DARKGREEN);
+											}
 										} else {
-											rectangleSelect.setFill(Color.GREENYELLOW);
-											rectangleSelect.setStroke(Color.DARKGREEN);
+											rectangleSelect.setStroke(Color.DARKBLUE);
+											rectangleSelect.setFill(Color.STEELBLUE);
 										}
-									} else {
-										rectangleSelect.setStroke(Color.DARKBLUE);
-										rectangleSelect.setFill(Color.STEELBLUE);
+										System.out.println("Clique no retangulo " + rectangleSelect);
 									}
-									System.out.println("Clique no retangulo " + rectangleSelect);
-								}
-							});
-							listNodesRectangles.add(rectangle);
+								});
+								listNodesRectangles.add(rectangle);
+							}
+
+							buttonFaltantes.setSelected(true);
+							buttonPresentes.setSelected(false);
+							anchor.getChildren().add(imageView);
+							anchor.getChildren().addAll(listNodesRectangles);
+							stackPane.getChildren().add(anchor);
+							ScrollPane sp = (ScrollPane) content.getChildren().get(0);
+							content.getChildren().clear();
+							sp.setContent(stackPane);
+							content.getChildren().add(sp);
+						} else {
+							System.out.println(MARCACAO_PARA_ESSA_IMAGEM_FINALIZADA);
 						}
 
-						buttonFaltantes.setSelected(true);
-						buttonPresentes.setSelected(false);
-						anchor.getChildren().add(imageView);
-						anchor.getChildren().addAll(listNodesRectangles);
-						stackPane.getChildren().add(anchor);
-						ScrollPane sp = (ScrollPane) content.getChildren().get(0);
-						content.getChildren().clear();
-						sp.setContent(stackPane);
-						content.getChildren().add(sp);
-					} else {
-						System.out.println(MARCACAO_PARA_ESSA_IMAGEM_FINALIZADA);
 					}
+
+				}
+
+				private double calculaRotacao(double distancia) {
+					if (distancia != 0) {
+						return distancia * CONSTANTE_DE_CRESCIMENTO_DE_ROTACAO;
+					}
+					return 0;
 
 				}
 
