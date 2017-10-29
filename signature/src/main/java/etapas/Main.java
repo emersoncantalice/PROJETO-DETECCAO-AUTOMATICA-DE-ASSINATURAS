@@ -16,6 +16,7 @@ import boofcv.alg.filter.blur.GBlurImageOps;
 import boofcv.factory.feature.detect.line.ConfigHoughFoot;
 import boofcv.factory.feature.detect.line.ConfigHoughFootSubimage;
 import boofcv.factory.feature.detect.line.FactoryDetectLineAlgs;
+import boofcv.gui.ListDisplayPanel;
 import boofcv.gui.binary.VisualizeBinaryData;
 import boofcv.gui.feature.ImageLinePanel;
 import boofcv.gui.image.ShowImages;
@@ -23,17 +24,22 @@ import boofcv.io.image.ConvertBufferedImage;
 import boofcv.io.image.UtilImageIO;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
+import filter.DetectarPresencaAirton;
+import filter.DetectarPresencaEmerson;
+import filter.DetectorDeAssinaturas;
 import georegression.metric.Intersection2D_F32;
 import georegression.metric.UtilAngle;
 import georegression.struct.line.LineParametric2D_F32;
 import georegression.struct.point.Point2D_F32;
+import georegression.struct.shapes.RectangleLength2D_F32;
 import util.PointComparator;
+import util.RectangleUtils;
 
 /**
  * @author emersoncantalice
  *
  */
-public class ReconhecimentoLinhasEDeteccaoDeIntercessoes {
+public class Main {
 
 	/**
 	 * @param img
@@ -100,7 +106,7 @@ public class ReconhecimentoLinhasEDeteccaoDeIntercessoes {
 		// Imagens disponiveis no pack 1 no drive, copialas para a pasta data desse
 		// projeto
 		// Carrega a imagem da lista
-		BufferedImage image1 = UtilImageIO.loadImage("data/00158C.jpg");
+		BufferedImage image1 = UtilImageIO.loadImage("data/00001E.jpg");
 
 		// Redimenciona a imagem, assim todas as imagens serão anallizadas nas mesmas
 		// condicoes de resolução
@@ -222,12 +228,73 @@ public class ReconhecimentoLinhasEDeteccaoDeIntercessoes {
 		// GrayF32.class, GrayF32.class);
 
 		// Descomentar a linha abaixo para ver as intercessoes
-		// intercessoes(image, lines);
+//		intercessoes(image, lines);
 
 		// Descomentar a linha abaixo para ver as retas identifiadas
-		retas(image, lines);
+//		 retas(image, lines);
+		 
+//		 separaAssinaturas(image, lines);
+		
+		 detectaAssinaturas(image, lines);
+	        
+		 
 	}
 
+	private static void detectaAssinaturas(BufferedImage image, List<LineParametric2D_F32> lines) {
+		List<LineParametric2D_F32> hlines = new LinkedList<LineParametric2D_F32>();
+	        List<LineParametric2D_F32> vlines = new LinkedList<LineParametric2D_F32>();
+
+	        for (LineParametric2D_F32 pline : lines) {
+	            long angulo = Math.abs(Math.round(UtilAngle.radianToDegree(pline.getAngle())));
+	            if (angulo == 0 || angulo == 180) {
+	                hlines.add(pline);
+	            } else if (angulo > 80 && angulo <= 100) {
+	                vlines.add(pline);
+	            }
+	        }
+
+	        Graphics2D g2 = (Graphics2D) image.getGraphics();
+	        g2.setColor(Color.RED);
+
+	        List<Point2D_F32> pontosIntercessao = new ArrayList<Point2D_F32>();
+	        for (LineParametric2D_F32 hline : hlines) {
+	            for (LineParametric2D_F32 vline : vlines) {
+	                Point2D_F32 intersection = Intersection2D_F32.intersection(hline, vline, null);
+	                if (intersection.x > 0) {
+	                    pontosIntercessao.add(intersection);
+	                    g2.fillRect((int) intersection.x, (int) intersection.y, 4, 4);
+	                }
+	            }
+	        }
+
+	        Collections.sort(pontosIntercessao, new PointComparator(2));
+
+	        List<RectangleLength2D_F32> cells = RectangleUtils.find(pontosIntercessao, vlines.size(), 3);
+
+	        int inicio = 7, intervalo = 4;
+	        List<RectangleLength2D_F32> assinaturasRetangulo = new LinkedList<RectangleLength2D_F32>();
+	        for (int i = inicio; i < cells.size(); i = i + intervalo) {
+	            assinaturasRetangulo.add(cells.get(i));
+	        }
+
+	        List<BufferedImage> assinaturas = RectangleUtils.splitImages(image, assinaturasRetangulo);
+	        System.out.println("Total de Imagens: " + assinaturas.size());
+
+	        ListDisplayPanel panel = new ListDisplayPanel();
+	        int count = 0;
+
+	        for (BufferedImage imagemAssinatura : assinaturas) {
+	        	DetectorDeAssinaturas dp = new DetectarPresencaEmerson();
+	            boolean preenchido = dp.detectaAssinatura(imagemAssinatura);
+	            String presenteOuNao = preenchido ? "Presente" : "Faltou";
+	            System.out.println("Imagem " + count + ": " + presenteOuNao);
+	            panel.addImage(imagemAssinatura, count + " : " + presenteOuNao);
+	            count++;
+	        }
+
+	        ShowImages.showWindow(panel, "Imagens");
+	}
+	
 	/**
 	 * @param image
 	 *            que as intercessoes seram encontradas
@@ -278,7 +345,7 @@ public class ReconhecimentoLinhasEDeteccaoDeIntercessoes {
 
 		// descomentar para ver a imagem binarizada
 		// ShowImages.showWindow(renderedBinary, "Detected Edges");
-		
+
 		ShowImages.showWindow(image, "Detected Lines");
 	}
 
