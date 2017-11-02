@@ -548,8 +548,13 @@ public class Controller implements Initializable {
 			e1.printStackTrace();
 			return;
 		}
-		imageView = new ImageView(new Image(imageURL));
-		imgZoom = new ImageView(new Image(imageURL));
+		
+		imageView = new ImageView(new Image(imageURL, 600, 800, false, false));
+		
+		imageView.setCursor(Cursor.CROSSHAIR);
+		
+		imgZoom = new ImageView(new Image(imageURL, 600, 800, false, false));
+		
 		StackPane stackPane = new StackPane();
 		AnchorPane anchor = new AnchorPane();
 		nameImage.setText(item.getName());
@@ -662,7 +667,7 @@ public class Controller implements Initializable {
 							}
 						}
 					}
-					rectangle.setStrokeWidth(5);
+					rectangle.setStrokeWidth(2);
 					rectangle.setStrokeType(StrokeType.INSIDE);
 					rectangle.opacityProperty().set(0.4);
 					rectangle.setCursor(Cursor.HAND);
@@ -819,7 +824,7 @@ public class Controller implements Initializable {
 								rectangle = new Rectangle(retangulo.getPontoInicialX(), retangulo.getPontoInicialY(),
 										retangulo.getLargura(), retangulo.getAltura());
 								rectangle.setStroke(Color.DARKBLUE);
-								rectangle.setStrokeWidth(5);
+								rectangle.setStrokeWidth(2);
 								rectangle.setStrokeType(StrokeType.INSIDE);
 								rectangle.setFill(Color.STEELBLUE);
 								rectangle.opacityProperty().set(0.4);
